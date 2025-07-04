@@ -1,2 +1,49 @@
-# Enterprise-authentication-service
-A robust authentication microservice built with Node.js, Express, and PostgreSQL. Features include JWT auth (access + refresh tokens), email verification, password reset, role-based access control, rate limiting, and input validation. Designed to scale and power secure user management for modern applications.
+Enterprise Authentication Microservice
+
+A production-ready authentication service built with Node.js, Express, and PostgreSQL, designed to handle over 1,000+ users with enterprise-grade security features. SecureAuth powers user management and can be integrated into any microservices architecture.
+
+
+
+Features
+
+- JWT Authentication with Access & Refresh Tokens
+-  Email Verification via Tokenized Links
+-  Secure Password Reset Flow
+-  Role-Based Access Control (RBAC)
+-  Rate Limiting to Prevent Abuse
+-  Input Validation & Sanitization
+-  Centralised Error Handling
+-  PostgreSQL with Knex/Prisma (ORM)
+-  Environment-based Configuration
+-  Production Deployment
+
+
+
+ Tech Stack
+
+- Backend: Node.js, Express.js
+- Database: PostgreSQL
+- Auth: JWT (access & refresh), bcrypt
+- Validation: express-validator
+- Rate Limiting: express-rate-limit
+- Email: Nodemailer
+- Deployment: Railway / Render
+- ORM: Prisma or Knex.js
+
+
+Project Structure
+
+secureauth/
+├── src/
+│ ├── controllers/
+│ ├── middlewares/
+│ ├── routes/
+│ ├── services/
+│ ├── utils/
+│ ├── validators/
+│ ├── models/
+│ └── app.js
+├── prisma/ or db/
+├── .env
+├── package.json
+└── README.md
