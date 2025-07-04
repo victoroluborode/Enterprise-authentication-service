@@ -1,4 +1,4 @@
-Enterprise Authentication Microservice
+Enterprise Authentication Service
 
 A production-ready authentication service built with Node.js, Express, and PostgreSQL, designed to handle over 1,000+ users with enterprise-grade security features. SecureAuth powers user management and can be integrated into any microservices architecture.
 
@@ -29,21 +29,3 @@ Features
 - Email: Nodemailer
 - Deployment: Railway / Render
 - ORM: Prisma or Knex.js
-
-
-Project Structure
-
-secureauth/
-├── src/
-│ ├── controllers/
-│ ├── middlewares/
-│ ├── routes/
-│ ├── services/
-│ ├── utils/
-│ ├── validators/
-│ ├── models/
-│ └── app.js
-├── prisma/ or db/
-├── .env
-├── package.json
-└── README.md
