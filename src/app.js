@@ -1,9 +1,15 @@
 const express = require('express');
 const app = express();
 require('dotenv').config();
+const registerRoute = require("./routes/auth");
 
-app.get("/api/health", (req, res) => {
-    res.json({ status: "ok" });
-})
+
+
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+app.use("/secureapi/register", registerRoute);
+
+
 
 module.exports = app;
