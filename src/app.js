@@ -1,7 +1,7 @@
 const express = require('express');
 const app = express();
 require('dotenv').config();
-const registerRoute = require("./routes/auth");
+const Routes = require("./routes/auth");
 const cors = require('cors');
 
 
@@ -15,7 +15,7 @@ app.use(
   })
 );
 
-app.use("/api/auth/register", registerRoute);
+app.use("/api/auth/", Routes);
 
 
 
