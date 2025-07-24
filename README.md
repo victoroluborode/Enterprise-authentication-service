@@ -7,11 +7,11 @@ A production-ready authentication service built with Node.js, Express, and Postg
 Features
 
 - JWT Authentication with Access & Refresh Tokens
--  Email Verification via Tokenized Links
+-  Email Verification via Tokenised Links
 -  Secure Password Reset Flow
 -  Role-Based Access Control (RBAC)
 -  Rate Limiting to Prevent Abuse
--  Input Validation & Sanitization
+-  Input Validation & Sanitisation
 -  Centralised Error Handling
 -  PostgreSQL with Knex/Prisma (ORM)
 -  Environment-based Configuration
@@ -28,4 +28,4 @@ Features
 - Rate Limiting: express-rate-limit
 - Email: Nodemailer
 - Deployment: Railway / Render
-- ORM: Prisma or Knex.js
+- ORM: Prisma
