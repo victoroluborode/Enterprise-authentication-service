@@ -86,4 +86,9 @@ const verifyRefreshTokens = async (req, res, next) => {
     }
 }
 
+
+const deleteRefreshToken = () => {
+    
+}
+
 module.exports = { createRefreshToken, verifyRefreshTokens };
