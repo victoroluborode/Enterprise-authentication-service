@@ -164,4 +164,21 @@ router.delete("/logout", (req, res) => {
   );
 });
 
+
+router.delete("/logoutall", authenticateToken, async (req, res) => {
+  const userId = req.user.id
+  try {
+    await prisma.RefreshToken.deleteMany({
+      where: {
+        userId
+      }
+    })
+    res.status(200).json({
+      message: "Logged out from all devices"
+    })
+  } catch (err) {
+    res.status(500).json({ err: "Failed to logout from all devices" });
+  }
+})
+
 module.exports = router;
