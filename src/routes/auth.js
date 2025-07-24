@@ -24,12 +24,12 @@ const posts = [
     },
   },
   {
-    email: "kiaricephus110@gmail.com",
+    email: "linkedIn110@gmail.com",
     title: "My DevOps Journey",
     body: "Discovering Docker, GitHub Actions, and infrastructure as code completely changed how I think about deployment.",
     createdAt: "2025-07-13T16:45:00Z",
     author: {
-      name: "Kiari Cephus",
+      name: "Linked In",
       bio: "Cloud enthusiast. DevOps engineer who enjoys making things reliable and reproducible.",
       avatar: "https://example.com/avatar2.png",
     },
@@ -91,6 +91,9 @@ router.get("/posts", authenticateToken, async (req, res) => {
   res.json(posts.filter(post => post.email === req.user.email));
 });
 
+
+
+
 router.post("/login", loginValidation, async (req, res) => {
     const { email, password } = req.body;
     try {
@@ -111,13 +114,15 @@ router.post("/login", loginValidation, async (req, res) => {
             });
         }
 
-        const accesstoken = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET)
-
+      const accesstoken = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '2m' });
+      const refreshtoken = jwt.sign(user, process.env.REFRESH_TOKEN_SECRET, {expiresIn: '7d'} )
+      refreshTokens.push(refreshtoken);
 
         res.status(200).json({
-            accesstoken,
-            message: "Login successful",
-            user
+          accesstoken: accesstoken,
+          refreshtoken: refreshtoken,
+          message: "Login successful",
+          user
         })
     } catch (err) {
         console.log("Login error:", err);
@@ -126,6 +131,37 @@ router.post("/login", loginValidation, async (req, res) => {
         });
     }
 });
+
+
+
+
+let refreshTokens = []
+router.post("/token", (req, res) => {
+  const refreshToken = req.body.token
+  if (refreshToken == null) {
+    return res.sendStatus(401)
+  }
+  if (!refreshTokens.includes(refreshToken)) {
+    return res.sendStatus(403)
+  }
+  jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET, (err, decoded) => {
+    req.user = decoded;
+    if (err) {
+      res.sendStatus(403)
+    }
+    const accesstoken = jwt.sign(req.user, process.env.ACCESS_TOKEN_SECRET);
+    res.status(200).json({
+      accesstoken: accesstoken
+    })
+ })
+})
+
+router.delete("/logout", (req, res) => {
+  refreshTokens = refreshTokens.filter(token => token !== req.body.token)
+  res.status(200).json({
+    message: "Logout successful"
+  })
+})
 
 
 
