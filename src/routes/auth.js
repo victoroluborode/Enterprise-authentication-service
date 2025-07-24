@@ -92,6 +92,9 @@ router.get("/posts", authenticateToken, async (req, res) => {
 });
 
 
+const generateAccessTokens = (user) => {
+  jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {expiresIn: "1.5m"})
+}
 
 
 router.post("/login", loginValidation, async (req, res) => {
@@ -114,7 +117,7 @@ router.post("/login", loginValidation, async (req, res) => {
             });
         }
 
-      const accesstoken = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '2m' });
+      const accesstoken = generateAccessTokens(user);
       const refreshtoken = jwt.sign(user, process.env.REFRESH_TOKEN_SECRET, {expiresIn: '7d'} )
       refreshTokens.push(refreshtoken);
 
@@ -149,7 +152,7 @@ router.post("/token", (req, res) => {
     if (err) {
       res.sendStatus(403)
     }
-    const accesstoken = jwt.sign(req.user, process.env.ACCESS_TOKEN_SECRET);
+    const accesstoken = generateAccessTokens(req.user);
     res.status(200).json({
       accesstoken: accesstoken
     })
