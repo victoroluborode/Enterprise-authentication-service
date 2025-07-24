@@ -8,6 +8,8 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 const bcrypt = require("bcrypt");
 const jwt = require('jsonwebtoken');
+const { createRefreshToken, verifyRefreshTokens } = require('../services/refreshTokenservice')
+
 
 
 
@@ -87,13 +89,17 @@ router.post("/register", registerValidation, async (req, res) => {
 });
 
 
+
+
 router.get("/posts", authenticateToken, async (req, res) => {
   res.json(posts.filter(post => post.email === req.user.email));
 });
 
 
+
+
 const generateAccessTokens = (user) => {
-  jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {expiresIn: "1.5m"})
+  return jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {expiresIn: "1.5m"})
 }
 
 
@@ -118,8 +124,7 @@ router.post("/login", loginValidation, async (req, res) => {
         }
 
       const accesstoken = generateAccessTokens(user);
-      const refreshtoken = jwt.sign(user, process.env.REFRESH_TOKEN_SECRET, {expiresIn: '7d'} )
-      refreshTokens.push(refreshtoken);
+      const refreshtoken = await createRefreshToken(user);
 
         res.status(200).json({
           accesstoken: accesstoken,
@@ -138,26 +143,13 @@ router.post("/login", loginValidation, async (req, res) => {
 
 
 
-let refreshTokens = []
-router.post("/token", (req, res) => {
-  const refreshToken = req.body.token
-  if (refreshToken == null) {
-    return res.sendStatus(401)
-  }
-  if (!refreshTokens.includes(refreshToken)) {
-    return res.sendStatus(403)
-  }
-  jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET, (err, decoded) => {
-    req.user = decoded;
-    if (err) {
-      res.sendStatus(403)
-    }
+
+router.post("/token", verifyRefreshTokens, async (req, res) => {
     const accesstoken = generateAccessTokens(req.user);
     res.status(200).json({
       accesstoken: accesstoken
     })
  })
-})
 
 router.delete("/logout", (req, res) => {
   refreshTokens = refreshTokens.filter(token => token !== req.body.token)
