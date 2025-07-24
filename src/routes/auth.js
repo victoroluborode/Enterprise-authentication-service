@@ -1,26 +1,26 @@
-require('dotenv').config();
-const express = require('express');
+require("dotenv").config();
+const express = require("express");
 const router = express.Router();
-const registerUser = require('../services/userService')
-const { registerValidation, loginValidation } = require('../utils/validation');
+const registerUser = require("../services/userService");
+const { registerValidation, loginValidation } = require("../utils/validation");
 const { authenticateToken } = require("../middleware/auth");
-const { PrismaClient } = require('@prisma/client');
+const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 const bcrypt = require("bcrypt");
-const jwt = require('jsonwebtoken');
-const { createRefreshToken, verifyRefreshTokens } = require('../services/refreshTokenservice')
-
-
-
+const jwt = require("jsonwebtoken");
+const {
+  createRefreshToken,
+  verifyRefreshTokens,
+} = require("../services/refreshTokenservice");
 
 const posts = [
   {
-    email: "sainthuncho110@gmail.com",
+    email: "jackma110@gmail.com",
     title: "How I Learned Node.js",
     body: "I started learning Node.js by building a personal blog API. The concepts were tough at first, but breaking them into small tasks helped a lot.",
     createdAt: "2025-07-14T10:00:00Z",
     author: {
-      name: "Victor Oluborode",
+      name: "Jack Ma",
       bio: "Backend developer in training, passionate about scalable systems and clean code.",
       avatar: "https://example.com/avatar1.png",
     },
@@ -60,107 +60,108 @@ const posts = [
   },
 ];
 
-
-
 router.post("/register", registerValidation, async (req, res) => {
-    const { email, password, fullname } = req.body;
-    try {
-        const existingUser = await prisma.user.findUnique({
-            where: { email: email }
-        });
+  const { email, password, fullname } = req.body;
+  try {
+    const existingUser = await prisma.user.findUnique({
+      where: { email: email },
+    });
 
-        if (existingUser) {
-            return res.status(400).json({
-                error: "Email already in use"
-            })
-        }
-        await registerUser(email, password, fullname);
-        res.status(200).json({
-            success: true,
-            message: "user registered"
-        })
-    } catch (err) {
-        console.log("Registration error:", err)
-        res.status(500).json({
-            error: "Server error"
-        })
+    if (existingUser) {
+      return res.status(400).json({
+        error: "Email already in use",
+      });
     }
-    
+    await registerUser(email, password, fullname);
+    res.status(200).json({
+      success: true,
+      message: "user registered",
+    });
+  } catch (err) {
+    console.log("Registration error:", err);
+    res.status(500).json({
+      error: "Server error",
+    });
+  }
 });
-
-
-
 
 router.get("/posts", authenticateToken, async (req, res) => {
-  res.json(posts.filter(post => post.email === req.user.email));
+  res.json(posts.filter((post) => post.email === req.user.email));
 });
-
-
-
 
 const generateAccessTokens = (user) => {
-  return jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {expiresIn: "1.5m"})
-}
-
+  return jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: "1.5m" });
+};
 
 router.post("/login", loginValidation, async (req, res) => {
-    const { email, password } = req.body;
-    try {
-        const user = await prisma.user.findUnique({
-            where: { email: email },
-        });
-        if (!user) {
-            return res.status(401).json({
-                message: "Invalid email or password"
-            });
-        }
-
-        const isPasswordValid = await bcrypt.compare(password, user.password);
-
-        if (!isPasswordValid) {
-            return res.status(401).json({
-                message: "Invalid email or password"
-            });
-        }
-
-      const accesstoken = generateAccessTokens(user);
-      const refreshtoken = await createRefreshToken(user);
-
-        res.status(200).json({
-          accesstoken: accesstoken,
-          refreshtoken: refreshtoken,
-          message: "Login successful",
-          user
-        })
-    } catch (err) {
-        console.log("Login error:", err);
-        res.status(500).json({
-            error: "Server error",
-        });
+  const { email, password } = req.body;
+  try {
+    const user = await prisma.user.findUnique({
+      where: { email: email },
+    });
+    if (!user) {
+      return res.status(401).json({
+        message: "Invalid email or password",
+      });
     }
+
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+
+    if (!isPasswordValid) {
+      return res.status(401).json({
+        message: "Invalid email or password",
+      });
+    }
+
+    const accesstoken = generateAccessTokens(user);
+    const refreshtoken = await createRefreshToken(user);
+
+    res.status(200).json({
+      accesstoken: accesstoken,
+      refreshtoken: refreshtoken,
+      message: "Login successful",
+      user,
+    });
+  } catch (err) {
+    console.log("Login error:", err);
+    res.status(500).json({
+      error: "Server error",
+    });
+  }
 });
 
-
-
-
-
 router.post("/token", verifyRefreshTokens, async (req, res) => {
-    const accesstoken = generateAccessTokens(req.user);
-    res.status(200).json({
-      accesstoken: accesstoken
-    })
- })
+  const accesstoken = generateAccessTokens(req.user);
+  res.status(200).json({
+    accesstoken: accesstoken,
+  });
+});
 
 router.delete("/logout", (req, res) => {
-  refreshTokens = refreshTokens.filter(token => token !== req.body.token)
-  res.status(200).json({
-    message: "Logout successful"
-  })
-})
+  const refreshToken = req.body.token;
+  jwt.verify(
+    refreshToken,
+    process.env.REFRESH_TOKEN_SECRET,
+    async (err, decoded) => {
+      if (err) {
+        return res.sendStatus(401);
+      }
+      const userId = decoded.sub;
+      const jti = decoded.jti;
+      try {
+        await prisma.RefreshToken.delete({
+          where: {
+            userId,
+            jti,
+          },
+        });
 
-
-
-
+        res.status(200).json({ message: "Logout successful" });
+      } catch (err) {
+        res.status(500).json({ error: "Token deletion failed" });
+      }
+    }
+  );
+});
 
 module.exports = router;
-
