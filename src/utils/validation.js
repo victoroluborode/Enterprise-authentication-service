@@ -53,4 +53,4 @@ const tokenValidation = [
   }
 ]
 
-module.exports = { registerValidation, loginValidation, tokenValidation };
+module.exports = { registerValidation, loginValidation };

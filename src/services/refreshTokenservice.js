@@ -56,10 +56,10 @@ const verifyRefreshTokens = async (req, res, next) => {
 
     if (!storedJtiRecord) {
       return res.status(403).json({
-        message: "No refresh token found",
+        message: "Invalid or revoked refresh token",
       });
     }
-    
+
       req.user = {
         id: decoded.sub,
         email: decoded.email,
@@ -69,7 +69,10 @@ const verifyRefreshTokens = async (req, res, next) => {
   } catch (err) {
     return res
       .status(403)
-      .json({ message: "Token verification failed", error: err.message });
+      .json({
+        message: "Invalid or revoked refresh token",
+        error: err.message,
+      });
   }
 };
 
