@@ -2,7 +2,7 @@ require("dotenv").config();
 const express = require("express");
 const router = express.Router();
 const registerUser = require("../services/userService");
-const { registerValidation, loginValidation } = require("../utils/validation");
+const { registerValidation, loginValidation, tokenValidation } = require("../utils/validation");
 const { authenticateToken } = require("../middleware/auth");
 const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
@@ -69,13 +69,19 @@ router.post("/register", registerValidation, async (req, res) => {
 
     if (existingUser) {
       return res.status(400).json({
-        error: "Email already in use",
+        message: "User already exists",
       });
     }
-    await registerUser(email, password, fullname);
-    res.status(200).json({
+    const user = await registerUser(email, password, fullname);
+    const userResponse = {
+      id: user.id,
+      email: user.email,
+      fullname: user.full_name, 
+    };
+    res.status(201).json({
       success: true,
-      message: "user registered",
+      message: `User registered successfully.`,
+      user: userResponse,
     });
   } catch (err) {
     console.log("Registration error:", err);
@@ -116,11 +122,17 @@ router.post("/login", loginValidation, async (req, res) => {
     const accesstoken = generateAccessTokens(user);
     const refreshtoken = await createRefreshToken(user);
 
+    const userResponse = {
+      id: user.id,
+      email: user.email,
+      fullname: user.full_name
+    }
+
     res.status(200).json({
       accesstoken: accesstoken,
       refreshtoken: refreshtoken,
       message: "Login successful",
-      user,
+      user: userResponse,
     });
   } catch (err) {
     console.log("Login error:", err);
@@ -130,10 +142,13 @@ router.post("/login", loginValidation, async (req, res) => {
   }
 });
 
-router.post("/token", verifyRefreshTokens, async (req, res) => {
+
+
+router.post("/token", tokenValidation, verifyRefreshTokens, async (req, res) => {
   const accesstoken = generateAccessTokens(req.user);
   res.status(200).json({
     accesstoken: accesstoken,
+    message: "access token refreshed"
   });
 });
 
@@ -164,21 +179,20 @@ router.delete("/logout", (req, res) => {
   );
 });
 
-
 router.delete("/logoutall", authenticateToken, async (req, res) => {
-  const userId = req.user.id
+  const userId = req.user.id;
   try {
     await prisma.RefreshToken.deleteMany({
       where: {
-        userId
-      }
-    })
+        userId,
+      },
+    });
     res.status(200).json({
-      message: "Logged out from all devices"
-    })
+      message: "Logged out from all devices",
+    });
   } catch (err) {
     res.status(500).json({ err: "Failed to logout from all devices" });
   }
-})
+});
 
 module.exports = router;

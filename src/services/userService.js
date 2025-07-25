@@ -16,6 +16,7 @@ async function registerUser(email, password, full_name) {
     });
 
     console.log("User created", user);
+    return user;
 };
 
 module.exports = registerUser;

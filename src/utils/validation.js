@@ -13,7 +13,7 @@ const registerValidation = [
             const errors = validationResult(req);
             if (!errors.isEmpty()) {
                 return res.status(400).json({
-                    errors: errors.array()
+                    message: errors.array()
                 });
             }
             next();
@@ -32,11 +32,25 @@ const loginValidation = [
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({
-        errors: errors.array(),
+        message: errors.array(),
       });
     }
     next();
   },
 ];
 
-module.exports = { registerValidation, loginValidation };
+
+const tokenValidation = [
+  body('token').notEmpty().withMessage("Refresh token required"),
+  (req, res, next) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(401).json({
+        message: errors.array(),
+      })
+    }
+    next();
+  }
+]
+
+module.exports = { registerValidation, loginValidation, tokenValidation };

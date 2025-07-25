@@ -19,18 +19,17 @@ const createRefreshToken = async (user) => {
     expiresIn: `${ttlDays}m`,
   });
 
-  const tokenHash = await bcrypt.hash(refreshToken, 10);
 
   await prisma.refreshToken.create({
     data: {
       userId: user.id,
-      tokenHash,
       jti,
       expiresAt,
     },
   });
   return refreshToken;
 };
+
 
 const verifyRefreshTokens = async (req, res, next) => {
   const refreshToken = req.body.token;
@@ -45,7 +44,7 @@ const verifyRefreshTokens = async (req, res, next) => {
     const userId = decoded.sub;
     const jti = decoded.jti;
 
-    const storedToken = await prisma.refreshToken.findFirst({
+    const storedJtiRecord = await prisma.refreshToken.findFirst({
       where: {
         userId,
         jti,
@@ -55,16 +54,12 @@ const verifyRefreshTokens = async (req, res, next) => {
       },
     });
 
-    if (!storedToken) {
+    if (!storedJtiRecord) {
       return res.status(403).json({
         message: "No refresh token found",
       });
     }
-
-    const isMatch = await bcrypt.compare(refreshToken, storedToken.tokenHash);
-    if (!isMatch) {
-      return res.status(403).json({ message: "Invalid refresh token" });
-    }
+    
       req.user = {
         id: decoded.sub,
         email: decoded.email,
