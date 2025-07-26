@@ -1,9 +1,8 @@
-#Enterprise Authentication Service
-
+**Enterprise Authentication Service**
 A production-ready authentication service built with Node.js, Express, and PostgreSQL, designed to handle user management and provide robust, enterprise-grade security features for integration into any microservices architecture.
 
 
-Features
+**Features**
 * JWT Authentication: Secure access and refresh token management for stateless authentication
 * Email Verification: User account activation via tokenised email links
 * Secure Password Reset: Robust flow for forgotten passwords
@@ -17,7 +16,7 @@ Features
 
 
 
-Tech Stack
+**Tech Stack**
 * Backend: Node.js, Express.js
 * Database: PostgreSQL
 * Authentication: JWT (Access & Refresh Tokens), bcrypt (password hashing)
@@ -29,16 +28,14 @@ Tech Stack
 
 
 
-🚀 Quick Start
-
+**🚀 Quick Start**
 Prerequisites
 * Node.js (LTS version recommended)
 * npm or Yarn
 * PostgreSQL database instance
 
 
-Installation
-
+**Installation**
 1. Clone the repository:git clone [YOUR_REPOSITORY_URL_HERE]
     cd enterprise-auth-service
 
@@ -52,18 +49,18 @@ Installation
     REFRESH_TOKEN_SECRET="YOUR_VERY_LONG_AND_RANDOM_REFRESH_TOKEN_SECRET"
     REFRESH_TOKEN_TTL_DAYS=30
 
-    # Email Service (for verification/password reset)
+    Email Service (for verification/password reset)
     EMAIL_HOST="smtp.example.com"
     EMAIL_PORT=587
     EMAIL_USER="your-email@example.com"
     EMAIL_PASS="your-email-password"
     EMAIL_FROM="no-reply@yourdomain.com"
 
-    # Frontend URL for email links
+    Frontend URL for email links
     FRONTEND_URL="http://localhost:5173"
 
 
-⚠️ Security Notes:
+**⚠️ Security Notes:**
 ACCESS_TOKEN_SECRET and REFRESH_TOKEN_SECRET should be very long, random strings
 Generate secrets using: node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
 Never commit your .env file to version control
@@ -81,7 +78,7 @@ Never commit your .env file to version control
 The server will be running at http://localhost:3000 
 
 
-Quick Test
+**Quick Test**
 Test your setup with a simple registration:
 curl -X POST http://localhost:3000/api/auth/register \
 -H "Content-Type: application/json" \
@@ -89,8 +86,7 @@ curl -X POST http://localhost:3000/api/auth/register \
 
 
 
-📚 API Documentation
-
+**📚 API Documentation**
 Base URL: http://localhost:3000/api/auth (development)
 Authentication Flow
 1. Register → POST /register → Get user account
@@ -101,8 +97,7 @@ Authentication Flow
 
 
 
-Endpoints
-
+**Endpoints**
 1. Register User
 POST /api/auth/register
 Request Body:
@@ -181,8 +176,7 @@ Responses:
 
 
 
-🔐 Authentication Guide
-
+**🔐 Authentication Guide**
 Using Access Tokens
 Include the access token in the Authorization header for all protected requests:
 // Example with fetch
@@ -194,8 +188,7 @@ fetch('http://localhost:3000/api/auth/posts', {
 })
 
 
-Token Refresh Pattern
-
+**Token Refresh Pattern**
 Access tokens are short-lived. Implement this refresh pattern in your client:
 // Pseudo-code for token refresh
 if (response.status === 401) {
@@ -210,8 +203,7 @@ if (response.status === 401) {
   }
 }
 
-🤝 Contributing
-
+**🤝 Contributing**
 1. Fork the repository
 2. Create a feature branch: git checkout -b feature/amazing-feature
 3. Make your changes and add tests
@@ -219,11 +211,10 @@ if (response.status === 401) {
 5. Push to the branch: git push origin feature/amazing-feature
 6. Open a Pull Request
 
-📄 License
+**📄 License**
 This project is licensed under the MIT License - see the LICENSE file for details.
 
-🆘 Troubleshooting
-
+**🆘 Troubleshooting**
 Database connection issues:
 * Ensure PostgreSQL is running
 * Check your DATABASE_URL in .env
