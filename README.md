@@ -1,4 +1,5 @@
 **Enterprise Authentication Service**
+
 A production-ready authentication service built with Node.js, Express, and PostgreSQL, designed to handle user management and provide robust, enterprise-grade security features for integration into any microservices architecture.
 
 
