@@ -92,7 +92,21 @@ router.post("/register", registerValidation, async (req, res) => {
 });
 
 router.get("/posts", authenticateToken, async (req, res) => {
-  res.json(posts.filter((post) => post.email === req.user.email));
+  try {
+    res.status(200).json({
+      message: "Access Granted",
+      posts: posts.filter((post) => post.email === req.user.email),
+    }
+     
+    );
+  } catch (err) {
+    console.error("error:", err);
+    res.status(500).json({
+      error: "server error",
+      message: "An unexpected error occurred while getting posts",
+    });
+  }
+  
 });
 
 const generateAccessTokens = (user) => {
@@ -144,20 +158,35 @@ router.post("/login", loginValidation, async (req, res) => {
 
 
 
-router.post("/token", verifyRefreshTokens, async (req, res) => { 
-  try{
+router.post("/token", verifyRefreshTokens, async (req, res) => {
+  const jtiOldToken = req.jtiOldToken
+  const userId = req.user.id
+  try {
     const accesstoken = generateAccessTokens(req.user);
+    const refreshtoken = await createRefreshToken(req.user);
+
+    await prisma.RefreshToken.delete({
+      where: {
+        userId: userId,
+        jti: jtiOldToken
+      }
+    })
+    
     res.status(200).json({
       accesstoken: accesstoken,
-      message: "access token refreshed",
+      refreshtoken: refreshtoken,
+      message: "Tokens refreshed successfully",
     });
   } catch (err) {
-    console.log("error:", err);
+    console.log("Token refresh error:", err);
     res.status(500).json({
-      error: "server error"
-    })
+      error: "server error",
+      message: "An unexpected error occurred during token refresh.",
+    });
   }
 });
+
+
 
 router.delete("/logout", (req, res) => {
   const refreshToken = req.body.token;
@@ -198,7 +227,10 @@ router.delete("/logoutall", authenticateToken, async (req, res) => {
       message: "Logged out from all devices",
     });
   } catch (err) {
-    res.status(500).json({ err: "Failed to logout from all devices" });
+    res.status(500).json({
+      error: "Server error",
+      message: "An unexpected error occurred during logout all"
+    });
   }
 });
 

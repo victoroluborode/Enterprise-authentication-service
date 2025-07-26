@@ -44,6 +44,8 @@ const verifyRefreshTokens = async (req, res, next) => {
     const userId = decoded.sub;
     const jti = decoded.jti;
 
+    req.jtiOldToken = jti;
+
     const storedJtiRecord = await prisma.refreshToken.findFirst({
       where: {
         userId,
@@ -63,6 +65,7 @@ const verifyRefreshTokens = async (req, res, next) => {
       req.user = {
         id: decoded.sub,
         email: decoded.email,
+        jti: decoded.jti
       };
 
     next();
