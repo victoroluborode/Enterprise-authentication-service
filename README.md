@@ -71,13 +71,11 @@ Never commit your .env file to version control
 4. Database Setup:# Run Prisma migrations
     npx prisma migrate dev --name init
 
-    # (Optional) Seed database
+    (Optional) Seed database
     npx prisma db seed
 
 5. Start the Server:
-    npm start
-    # or
-    yarn start
+    npm start or yarn start
 
 
 The server will be running at http://localhost:3000 
