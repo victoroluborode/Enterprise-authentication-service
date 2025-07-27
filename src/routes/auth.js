@@ -9,9 +9,10 @@ const prisma = new PrismaClient();
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const {
+  createAccessToken,
   createRefreshToken,
   verifyRefreshTokens,
-} = require("../services/refreshTokenservice");
+} = require("../services/Tokenservice");
 
 const posts = [
   {
@@ -109,9 +110,7 @@ router.get("/posts", authenticateToken, async (req, res) => {
   
 });
 
-const generateAccessTokens = (user) => {
-  return jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: "1.5m" });
-};
+
 
 router.post("/login", loginValidation, async (req, res) => {
   const { email, password } = req.body;
@@ -133,7 +132,7 @@ router.post("/login", loginValidation, async (req, res) => {
       });
     }
 
-    const accesstoken = generateAccessTokens(user);
+    const accesstoken = await createAccessToken(user);
     const refreshtoken = await createRefreshToken(user);
 
     const userResponse = {

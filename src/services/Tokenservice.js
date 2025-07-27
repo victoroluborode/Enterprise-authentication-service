@@ -6,13 +6,22 @@ const { v4: uuidv4 } = require("uuid");
 require("dotenv").config();
 const prisma = new PrismaClient();
 
+const createAccessToken = async (user) => {
+  const payload = {
+    sub: user.id,
+    roles: user.roles
+  }
+
+  const accesstoken = jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET, { expiresIn: "10m" });
+  return accesstoken;
+}
+
 const createRefreshToken = async (user) => {
   const ttlDays = parseInt(process.env.REFRESH_TOKEN_TTL_DAYS || 30);
   const expiresAt = addDays(new Date(), ttlDays);
   const jti = uuidv4();
   const payload = {
     sub: user.id,
-    email: user.email,
     jti,
   };
   const refreshToken = jwt.sign(payload, process.env.REFRESH_TOKEN_SECRET, {
@@ -64,7 +73,6 @@ const verifyRefreshTokens = async (req, res, next) => {
 
       req.user = {
         id: decoded.sub,
-        email: decoded.email,
         jti: decoded.jti
       };
 
@@ -80,4 +88,4 @@ const verifyRefreshTokens = async (req, res, next) => {
 };
 
 
-module.exports = { createRefreshToken, verifyRefreshTokens };
+module.exports = { createAccessToken,createRefreshToken, verifyRefreshTokens };
