@@ -13,7 +13,7 @@ const {
   createRefreshToken,
   verifyRefreshTokens,
 } = require("../services/Tokenservice");
-const {decodeJwt} = require("../utils/jwt");
+const { decodeJwt } = require("../utils/jwt");
 
 const posts = [
   {
@@ -69,23 +69,25 @@ router.post("/register", registerValidation, async (req, res) => {
       where: { email: email },
     });
 
+    console.log(existingUser);
+
     if (existingUser) {
       return res.status(400).json({
         message: "User already exists",
       });
     }
-    
+
     const userWithRoles = await registerUser(email, password, fullname);
-    const userRoles = userWithRoles.roles.map(userRole => userRole.role.name)
+    const userRoles = userWithRoles.roles.map((userRole) => userRole.role.name);
 
     const accessToken = await createAccessToken(userWithRoles);
-    const refreshToken = await createRefreshToken(userWithRoles)
+    const refreshToken = await createRefreshToken(userWithRoles);
 
     const decodedPayload = decodeJwt(accessToken);
     console.log("Decoded JWT Payload:", decodedPayload);
 
-
-
+    const decodedPayloadRefresh = decodeJwt(refreshToken.token);
+    console.log("Decoded Refresh JWT Payload:", decodedPayloadRefresh);
 
     const userResponse = {
       id: userWithRoles.id,
@@ -93,14 +95,13 @@ router.post("/register", registerValidation, async (req, res) => {
       fullname: userWithRoles.fullname,
     };
 
-
     res.status(201).json({
       success: true,
       message: `User registered successfully.`,
       accessToken,
       refreshToken: refreshToken.token,
       user: userResponse,
-      roles: userRoles
+      roles: userRoles,
     });
   } catch (err) {
     console.log("Registration error:", err);
@@ -230,8 +231,6 @@ router.delete("/logout", (req, res) => {
   );
 });
 
-
-
 router.delete("/logoutall", authenticateToken, async (req, res) => {
   const userId = req.user.sub;
   try {
@@ -243,7 +242,7 @@ router.delete("/logoutall", authenticateToken, async (req, res) => {
     await prisma.user.update({
       where: { id: userId },
       data: { tokenVersion: { increment: 1 } },
-    })
+    });
     res.status(200).json({
       message: "Logged out from all devices",
     });

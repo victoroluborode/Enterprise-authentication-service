@@ -24,9 +24,11 @@ const createRefreshToken = async (user) => {
   const ttlDays = parseInt(process.env.REFRESH_TOKEN_TTL_DAYS || 30);
   const expiresAt = addDays(new Date(), ttlDays);
   const jti = uuidv4();
+  const deviceId = uuidv4();
   const payload = {
     sub: user.id,
     jti,
+    deviceId,
   };
   const refreshToken = jwt.sign(payload, process.env.REFRESH_TOKEN_SECRET, {
     expiresIn: `${ttlDays}m`,
@@ -38,6 +40,7 @@ const createRefreshToken = async (user) => {
       userId: user.id,
       jti,
       expiresAt,
+      deviceId
     },
   });
   return {
