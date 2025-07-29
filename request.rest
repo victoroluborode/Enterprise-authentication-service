@@ -1,0 +1,13 @@
+POST http://localhost:3000/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "Pinkedin110@gmail.com",
+  "password": "IAMpinkedin110#",
+  "deviceId": "32489d7e-7762-4f39-952f-8b5474127ada"
+}
+
+###
+
+GET http://localhost:3000/api/auth/posts?email=Pinkedin110@gmail.com
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjQsInJvbGVzIjpbXSwidG9rZW5WZXJzaW9uIjoxLCJpYXQiOjE3NTM4MjU4NzMsImV4cCI6MTc1MzgyNjQ3M30.nUt_5SOfhrmXc6-vT1dgJuTe2QNHhxUtXaP3CPxmfUA

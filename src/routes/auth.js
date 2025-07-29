@@ -28,12 +28,12 @@ const posts = [
     },
   },
   {
-    email: "linkedin110@gmail.com",
+    email: "Pinkedin110@gmail.com",
     title: "My DevOps Journey",
     body: "Discovering Docker, GitHub Actions, and infrastructure as code completely changed how I think about deployment.",
     createdAt: "2025-07-13T16:45:00Z",
     author: {
-      name: "Linked In",
+      name: "Pinked In",
       bio: "Cloud enthusiast. DevOps engineer who enjoys making things reliable and reproducible.",
       avatar: "https://example.com/avatar2.png",
     },
@@ -63,7 +63,10 @@ const posts = [
 ];
 
 router.post("/register", registerValidation, async (req, res) => {
-  const { email, password, fullname } = req.body;
+  const { email, password, fullname, deviceId } = req.body;
+  const ipAddress = req.ip;
+  const userAgent = req.headers['user-agent']; 
+
   try {
     const existingUser = await prisma.user.findUnique({
       where: { email: email },
@@ -81,7 +84,7 @@ router.post("/register", registerValidation, async (req, res) => {
     const userRoles = userWithRoles.roles.map((userRole) => userRole.role.name);
 
     const accessToken = await createAccessToken(userWithRoles);
-    const refreshToken = await createRefreshToken(userWithRoles);
+    const refreshToken = await createRefreshToken(userWithRoles, deviceId, ipAddress, userAgent);
 
     const decodedPayload = decodeJwt(accessToken);
     console.log("Decoded JWT Payload:", decodedPayload);
@@ -112,7 +115,8 @@ router.post("/register", registerValidation, async (req, res) => {
 });
 
 router.get("/posts", authenticateToken, async (req, res) => {
-  email = req.body.email || req.user.email;
+  const email = req.query.email;
+  console.log(email);
   try {
     res.status(200).json({
       message: "Access Granted",
@@ -127,8 +131,41 @@ router.get("/posts", authenticateToken, async (req, res) => {
   }
 });
 
+router.get("/sessions", authenticateToken, async (req, res) => {
+  try { 
+    const userId = req.user.sub;
+    const sessions = await prisma.refreshToken.findMany({
+      where: {
+        userId: userId,
+        expiresAt: {
+        gte: new Date(),
+      } },
+      select: {
+        deviceId: true,
+        ipAddress: true,
+        userAgent: true,
+        expiresAt: true,
+        createdAt: true,
+      },
+    });
+
+    res.status(200).json({
+      message: "Sessions retrieved successfully",
+      sessions: sessions,
+    });
+  } catch (err) {
+    console.error("Error retrieving sessions:", err);
+    res.status(500).json({
+      error: "Server error",
+      message: "An unexpected error occurred while retrieving sessions",
+    });
+  }
+})
+
 router.post("/login", loginValidation, async (req, res) => {
-  const { email, password } = req.body;
+  const { email, password, deviceId } = req.body;
+  const ipAddress = req.ip;
+  const userAgent = req.headers['user-agent'];
   try {
     const user = await prisma.user.findUnique({
       where: { email: email },
@@ -148,7 +185,7 @@ router.post("/login", loginValidation, async (req, res) => {
     }
 
     const accesstoken = await createAccessToken(user);
-    const refreshtoken = await createRefreshToken(user);
+    const refreshtoken = await createRefreshToken(user, deviceId, ipAddress, userAgent);
 
     const decodedPayload = decodeJwt(accesstoken);
     console.log("Decoded JWT Payload:", decodedPayload);
@@ -176,9 +213,13 @@ router.post("/login", loginValidation, async (req, res) => {
 router.post("/token", verifyRefreshTokens, async (req, res) => {
   const jtiOldToken = req.jtiOldToken;
   const userId = req.user.id;
+  const deviceId = req.user.deviceId;
+
+  const ipAddress = req.ip;
+  const userAgent = req.headers['user-agent'];
   try {
     const accesstoken = await createAccessToken(req.user);
-    const refreshtoken = await createRefreshToken(req.user);
+    const refreshtoken = await createRefreshToken(req.user, deviceId, ipAddress, userAgent);
 
     const decodedPayload = decodeJwt(accesstoken);
     console.log("Decoded JWT Payload:", decodedPayload);

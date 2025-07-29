@@ -7,7 +7,8 @@ const registerValidation = [
         .withMessage(
             "Password must be at least 8 characters and include uppercase, lowercase, number, and special character"
         ),
-    body('fullname').trim().notEmpty().withMessage('Full name is required'),
+  body('fullname').trim().notEmpty().withMessage('Full name is required'),
+  body('deviceId').notEmpty().withMessage("Device ID must not be empty").isUUID().withMessage('Device ID must be a valid UUID'),
 
         (req, res, next) => {
             const errors = validationResult(req);
@@ -26,7 +27,8 @@ const loginValidation = [
     .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/)
     .withMessage(
       "Password must be at least 8 characters and include uppercase, lowercase, number, and special character"
-    ),
+  ),
+  body('deviceId').optional().isUUID().withMessage('Device ID must be a valid UUID'),
 
   (req, res, next) => {
     const errors = validationResult(req);

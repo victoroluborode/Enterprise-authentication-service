@@ -20,11 +20,11 @@ const createAccessToken = async (user) => {
   return accesstoken;
 }
 
-const createRefreshToken = async (user) => {
+const createRefreshToken = async (user, deviceId, ipAddress, userAgent) => {
   const ttlDays = parseInt(process.env.REFRESH_TOKEN_TTL_DAYS || 30);
   const expiresAt = addDays(new Date(), ttlDays);
   const jti = uuidv4();
-  const deviceId = uuidv4();
+  // const deviceId = uuidv4();
   const payload = {
     sub: user.id,
     jti,
@@ -40,7 +40,9 @@ const createRefreshToken = async (user) => {
       userId: user.id,
       jti,
       expiresAt,
-      deviceId
+      deviceId,
+      ipAddress: ipAddress,
+      userAgent: userAgent
     },
   });
   return {
@@ -62,6 +64,7 @@ const verifyRefreshTokens = async (req, res, next) => {
     const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
     const userId = decoded.sub;
     const jti = decoded.jti;
+    const existingDeviceId = decoded.deviceId;
 
     req.jtiOldToken = jti;
 
@@ -83,7 +86,8 @@ const verifyRefreshTokens = async (req, res, next) => {
 
       req.user = {
         id: decoded.sub,
-        jti: decoded.jti
+        jti: decoded.jti,
+        deviceId: existingDeviceId,
       };
 
     next();
