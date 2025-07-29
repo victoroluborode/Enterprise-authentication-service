@@ -13,6 +13,7 @@ const {
   createRefreshToken,
   verifyRefreshTokens,
 } = require("../services/Tokenservice");
+const {decodeJwt} = require("../utils/jwt");
 
 const posts = [
   {
@@ -27,7 +28,7 @@ const posts = [
     },
   },
   {
-    email: "linkedIn110@gmail.com",
+    email: "linkedin110@gmail.com",
     title: "My DevOps Journey",
     body: "Discovering Docker, GitHub Actions, and infrastructure as code completely changed how I think about deployment.",
     createdAt: "2025-07-13T16:45:00Z",
@@ -79,6 +80,10 @@ router.post("/register", registerValidation, async (req, res) => {
 
     const accessToken = await createAccessToken(userWithRoles);
     const refreshToken = await createRefreshToken(userWithRoles)
+
+    const decodedPayload = decodeJwt(accessToken);
+    console.log("Decoded JWT Payload:", decodedPayload);
+
 
 
 
@@ -144,6 +149,9 @@ router.post("/login", loginValidation, async (req, res) => {
     const accesstoken = await createAccessToken(user);
     const refreshtoken = await createRefreshToken(user);
 
+    const decodedPayload = decodeJwt(accesstoken);
+    console.log("Decoded JWT Payload:", decodedPayload);
+
     const userResponse = {
       id: user.id,
       email: user.email,
@@ -170,6 +178,9 @@ router.post("/token", verifyRefreshTokens, async (req, res) => {
   try {
     const accesstoken = await createAccessToken(req.user);
     const refreshtoken = await createRefreshToken(req.user);
+
+    const decodedPayload = decodeJwt(accesstoken);
+    console.log("Decoded JWT Payload:", decodedPayload);
 
     await prisma.refreshToken.delete({
       where: {
