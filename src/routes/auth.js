@@ -16,12 +16,12 @@ const {
 
 const posts = [
   {
-    email: "jackma110@gmail.com",
+    email: "packma110@gmail.com",
     title: "How I Learned Node.js",
     body: "I started learning Node.js by building a personal blog API. The concepts were tough at first, but breaking them into small tasks helped a lot.",
     createdAt: "2025-07-14T10:00:00Z",
     author: {
-      name: "Jack Ma",
+      name: "Pack Ma",
       bio: "Backend developer in training, passionate about scalable systems and clean code.",
       avatar: "https://example.com/avatar1.png",
     },
@@ -73,16 +73,29 @@ router.post("/register", registerValidation, async (req, res) => {
         message: "User already exists",
       });
     }
-    const user = await registerUser(email, password, fullname);
+    
+    const userWithRoles = await registerUser(email, password, fullname);
+    const userRoles = userWithRoles.roles.map(userRole => userRole.role.name)
+
+    const accessToken = await createAccessToken(userWithRoles);
+    const refreshToken = await createRefreshToken(userWithRoles)
+
+
+
     const userResponse = {
-      id: user.id,
-      email: user.email,
-      fullname: user.full_name, 
+      id: userWithRoles.id,
+      email: userWithRoles.email,
+      fullname: userWithRoles.fullname,
     };
+
+
     res.status(201).json({
       success: true,
       message: `User registered successfully.`,
+      accessToken,
+      refreshToken: refreshToken.token,
       user: userResponse,
+      roles: userRoles
     });
   } catch (err) {
     console.log("Registration error:", err);
@@ -93,13 +106,12 @@ router.post("/register", registerValidation, async (req, res) => {
 });
 
 router.get("/posts", authenticateToken, async (req, res) => {
+  email = req.body.email || req.user.email;
   try {
     res.status(200).json({
       message: "Access Granted",
-      posts: posts.filter((post) => post.email === req.user.email),
-    }
-     
-    );
+      posts: posts.filter((post) => post.email === email),
+    });
   } catch (err) {
     console.error("error:", err);
     res.status(500).json({
@@ -107,10 +119,7 @@ router.get("/posts", authenticateToken, async (req, res) => {
       message: "An unexpected error occurred while getting posts",
     });
   }
-  
 });
-
-
 
 router.post("/login", loginValidation, async (req, res) => {
   const { email, password } = req.body;
@@ -138,8 +147,8 @@ router.post("/login", loginValidation, async (req, res) => {
     const userResponse = {
       id: user.id,
       email: user.email,
-      fullname: user.full_name
-    }
+      fullname: user.fullname,
+    };
 
     res.status(200).json({
       accesstoken: accesstoken,
@@ -155,22 +164,20 @@ router.post("/login", loginValidation, async (req, res) => {
   }
 });
 
-
-
 router.post("/token", verifyRefreshTokens, async (req, res) => {
-  const jtiOldToken = req.jtiOldToken
-  const userId = req.user.id
+  const jtiOldToken = req.jtiOldToken;
+  const userId = req.user.id;
   try {
-    const accesstoken = generateAccessTokens(req.user);
+    const accesstoken = await createAccessToken(req.user);
     const refreshtoken = await createRefreshToken(req.user);
 
-    await prisma.RefreshToken.delete({
+    await prisma.refreshToken.delete({
       where: {
         userId: userId,
-        jti: jtiOldToken
-      }
-    })
-    
+        jti: jtiOldToken,
+      },
+    });
+
     res.status(200).json({
       accesstoken: accesstoken,
       refreshtoken: refreshtoken,
@@ -185,8 +192,6 @@ router.post("/token", verifyRefreshTokens, async (req, res) => {
   }
 });
 
-
-
 router.delete("/logout", (req, res) => {
   const refreshToken = req.body.token;
   jwt.verify(
@@ -199,7 +204,7 @@ router.delete("/logout", (req, res) => {
       const userId = decoded.sub;
       const jti = decoded.jti;
       try {
-        await prisma.RefreshToken.delete({
+        await prisma.refreshToken.delete({
           where: {
             userId,
             jti,
@@ -214,21 +219,27 @@ router.delete("/logout", (req, res) => {
   );
 });
 
+
+
 router.delete("/logoutall", authenticateToken, async (req, res) => {
-  const userId = req.user.id;
+  const userId = req.user.sub;
   try {
-    await prisma.RefreshToken.deleteMany({
+    await prisma.refreshToken.deleteMany({
       where: {
-        userId,
+        userId: userId,
       },
     });
+    await prisma.user.update({
+      where: { id: userId },
+      data: { tokenVersion: { increment: 1 } },
+    })
     res.status(200).json({
       message: "Logged out from all devices",
     });
   } catch (err) {
     res.status(500).json({
       error: "Server error",
-      message: "An unexpected error occurred during logout all"
+      message: "An unexpected error occurred during logout all",
     });
   }
 });

@@ -7,13 +7,14 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
+model user {
   id        Int     @id @default(autoincrement())
   email     String  @unique
   password  String
-  full_name String?
+  fullname String?
+  tokenVersion Int @default(0)
   roles UserRole[]
-  refreshTokens RefreshToken[]
+  refreshTokens refreshToken[]
 }
 
 model Role {
@@ -26,7 +27,7 @@ model Role {
 
 model UserRole {
   userId Int
-  user User @relation(fields: [userId], references: [id])
+  user user @relation(fields: [userId], references: [id])
   roleId Int
   role Role @relation(fields: [roleId], references: [id])
   assignedAt DateTime @default(now())
@@ -34,9 +35,9 @@ model UserRole {
   @@id([userId, roleId])
 }
 
-model RefreshToken {
+model refreshToken {
 id Int @id @default(autoincrement())
-user User @relation(fields: [userId], references: [id])
+user user @relation(fields: [userId], references: [id])
 userId Int
 jti String @unique
 expiresAt DateTime

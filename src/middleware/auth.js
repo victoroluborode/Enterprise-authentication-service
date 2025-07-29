@@ -1,6 +1,8 @@
 const jwt = require('jsonwebtoken');
+const { PrismaClient } = require("@prisma/client");
+const prisma = new PrismaClient();
 
-const authenticateToken = (req, res, next) => {
+const authenticateToken = async (req, res, next) => {
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
     if (token == null) {
@@ -9,12 +11,31 @@ const authenticateToken = (req, res, next) => {
         });
     }
 
-    jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
+    jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, async (err, decoded) => {
         if (err) {
             return res.status(403).json({
               message: "Invalid or expired token",
             });
         }
+      
+        const tokenVer = decoded.tokenVersion;
+      const user = await prisma.user.findUnique({
+        where: { id: decoded.sub },
+        select: {tokenVersion: true},
+      })
+      if (!user || user.tokenVersion !== tokenVer) {
+        console.warn(
+          `Token version mismatch for user ${
+            decoded.sub
+          }. JWT Version: ${tokenVer}, DB Version: ${
+            user ? user.tokenVersion : "N/A"
+          }`
+        );
+        return res.status(403).json({
+          message: "Token invalidated. Please log in again.",
+        });
+      }
+      
         req.user = decoded;
         next();
     });

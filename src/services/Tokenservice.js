@@ -7,9 +7,13 @@ require("dotenv").config();
 const prisma = new PrismaClient();
 
 const createAccessToken = async (user) => {
+  const roleNames = user.roles
+    ? user.roles.map((userRole) => userRole.role.name)
+    : [];
   const payload = {
     sub: user.id,
-    roles: user.roles
+    roles: roleNames,
+    tokenVersion: user.tokenVersion || 0,
   }
 
   const accesstoken = jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET, { expiresIn: "10m" });
@@ -36,7 +40,10 @@ const createRefreshToken = async (user) => {
       expiresAt,
     },
   });
-  return refreshToken;
+  return {
+    token: refreshToken,
+    jti: jti
+  };
 };
 
 
