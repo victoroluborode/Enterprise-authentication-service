@@ -141,6 +141,7 @@ router.get("/sessions", authenticateToken, async (req, res) => {
         gte: new Date(),
       } },
       select: {
+        jti: true,
         deviceId: true,
         ipAddress: true,
         userAgent: true,
@@ -272,7 +273,7 @@ router.delete("/logout", (req, res) => {
   );
 });
 
-router.delete("/logoutall", authenticateToken, async (req, res) => {
+router.delete("/sessions", authenticateToken, async (req, res) => {
   const userId = req.user.sub;
   try {
     await prisma.refreshToken.deleteMany({
@@ -294,5 +295,41 @@ router.delete("/logoutall", authenticateToken, async (req, res) => {
     });
   }
 });
+
+
+router.delete("/sessions/:jti", authenticateToken, async (req, res) => {
+  const jti = req.params.jti;
+  const userId = req.user.sub;
+
+  if (!jti) {
+    return res
+      .status(400)
+      .json({ message: "Session ID (jti) is required in the path." });
+  }
+  try {
+    const deletedToken = await prisma.refreshToken.deleteMany({
+      where: {
+        jti: jti,
+        userId: userId,
+       }
+    });
+
+    if (deletedToken.count === 0) {
+      return res.status(404).json({
+        message: "Session not found or already deleted",
+      });
+      
+    }
+    res.status(200).json({
+      message: "Session deleted successfully",
+    });
+  } catch (err) {
+    console.error("Error deleting session:", err);
+    res.status(500).json({
+      error: "Server error",
+      message: "An unexpected error occurred while deleting the session",
+    });
+  }
+})
 
 module.exports = router;
