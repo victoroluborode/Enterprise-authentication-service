@@ -14,6 +14,7 @@ const {
   verifyRefreshTokens,
 } = require("../services/Tokenservice");
 const { decodeJwt } = require("../utils/jwt");
+const {loginRateLimiter, tokenRateLimiter} = require("../middleware/ratelimiter")
 
 const posts = [
   {
@@ -163,7 +164,7 @@ router.get("/sessions", authenticateToken, async (req, res) => {
   }
 })
 
-router.post("/login", loginValidation, async (req, res) => {
+router.post("/login", loginValidation, loginRateLimiter, async (req, res) => {
   const { email, password, deviceId } = req.body;
   const ipAddress = req.ip;
   const userAgent = req.headers['user-agent'];
@@ -211,7 +212,7 @@ router.post("/login", loginValidation, async (req, res) => {
   }
 });
 
-router.post("/token", verifyRefreshTokens, async (req, res) => {
+router.post("/token", verifyRefreshTokens, tokenRateLimiter, async (req, res) => {
   const jtiOldToken = req.jtiOldToken;
   const userId = req.user.id;
   const deviceId = req.user.deviceId;

@@ -3,6 +3,9 @@ const app = express();
 require('dotenv').config();
 const Routes = require("./routes/auth");
 const cors = require('cors');
+const { globalRateLimiter } = require("../src/middleware/ratelimiter")
+
+
 
 
 
@@ -15,6 +18,7 @@ app.use(
   })
 );
 
+app.use(globalRateLimiter);
 app.use("/api/auth/", Routes);
 
 
