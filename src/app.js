@@ -3,7 +3,8 @@ const app = express();
 require('dotenv').config();
 const Routes = require("./routes/auth");
 const cors = require('cors');
-const { globalRateLimiter } = require("../src/middleware/ratelimiter")
+const { globalRateLimiter } = require("../src/middleware/ratelimiter");
+const redisClient = require("../src/config/redisClient")
 
 
 

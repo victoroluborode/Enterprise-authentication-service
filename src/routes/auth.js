@@ -14,7 +14,15 @@ const {
   verifyRefreshTokens,
 } = require("../services/Tokenservice");
 const { decodeJwt } = require("../utils/jwt");
-const {loginRateLimiter, tokenRateLimiter} = require("../middleware/ratelimiter")
+const {
+  loginRateLimiter,
+  tokenRateLimiter,
+  registerRateLimiter,
+  postsRateLimiter,
+  sessionsRateLimiter,
+  logoutAllRateLimiter,
+  logoutSpecificRateLimiter,
+} = require("../middleware/ratelimiter");
 
 const posts = [
   {
@@ -63,59 +71,71 @@ const posts = [
   },
 ];
 
-router.post("/register", registerValidation, async (req, res) => {
-  const { email, password, fullname, deviceId } = req.body;
-  const ipAddress = req.ip;
-  const userAgent = req.headers['user-agent']; 
+router.post(
+  "/register",
+  registerValidation,
+  registerRateLimiter,
+  async (req, res) => {
+    const { email, password, fullname, deviceId } = req.body;
+    const ipAddress = req.ip;
+    const userAgent = req.headers["user-agent"];
 
-  try {
-    const existingUser = await prisma.user.findUnique({
-      where: { email: email },
-    });
+    try {
+      const existingUser = await prisma.user.findUnique({
+        where: { email: email },
+      });
 
-    console.log(existingUser);
+      console.log(existingUser);
 
-    if (existingUser) {
-      return res.status(400).json({
-        message: "User already exists",
+      if (existingUser) {
+        return res.status(400).json({
+          message: "User already exists",
+        });
+      }
+
+      const userWithRoles = await registerUser(email, password, fullname);
+      const userRoles = userWithRoles.roles.map(
+        (userRole) => userRole.role.name
+      );
+
+      const accessToken = await createAccessToken(userWithRoles);
+      const refreshToken = await createRefreshToken(
+        userWithRoles,
+        deviceId,
+        ipAddress,
+        userAgent
+      );
+
+      const decodedPayload = decodeJwt(accessToken);
+      console.log("Decoded JWT Payload:", decodedPayload);
+
+      const decodedPayloadRefresh = decodeJwt(refreshToken.token);
+      console.log("Decoded Refresh JWT Payload:", decodedPayloadRefresh);
+
+      const userResponse = {
+        id: userWithRoles.id,
+        email: userWithRoles.email,
+        fullname: userWithRoles.fullname,
+      };
+
+      res.status(201).json({
+        success: true,
+        message: `User registered successfully.`,
+        accessToken,
+        refreshToken: refreshToken.token,
+        user: userResponse,
+        roles: userRoles,
+      });
+    } catch (err) {
+      console.log("Registration error:", err);
+      res.status(500).json({
+        error: "Server error",
       });
     }
-
-    const userWithRoles = await registerUser(email, password, fullname);
-    const userRoles = userWithRoles.roles.map((userRole) => userRole.role.name);
-
-    const accessToken = await createAccessToken(userWithRoles);
-    const refreshToken = await createRefreshToken(userWithRoles, deviceId, ipAddress, userAgent);
-
-    const decodedPayload = decodeJwt(accessToken);
-    console.log("Decoded JWT Payload:", decodedPayload);
-
-    const decodedPayloadRefresh = decodeJwt(refreshToken.token);
-    console.log("Decoded Refresh JWT Payload:", decodedPayloadRefresh);
-
-    const userResponse = {
-      id: userWithRoles.id,
-      email: userWithRoles.email,
-      fullname: userWithRoles.fullname,
-    };
-
-    res.status(201).json({
-      success: true,
-      message: `User registered successfully.`,
-      accessToken,
-      refreshToken: refreshToken.token,
-      user: userResponse,
-      roles: userRoles,
-    });
-  } catch (err) {
-    console.log("Registration error:", err);
-    res.status(500).json({
-      error: "Server error",
-    });
   }
-});
+);
 
-router.get("/posts", authenticateToken, async (req, res) => {
+router.get("/posts", authenticateToken, postsRateLimiter, async (req, res) => {
   const email = req.query.email;
   console.log(email);
   try {
@@ -132,42 +152,48 @@ router.get("/posts", authenticateToken, async (req, res) => {
   }
 });
 
-router.get("/sessions", authenticateToken, async (req, res) => {
-  try { 
-    const userId = req.user.sub;
-    const sessions = await prisma.refreshToken.findMany({
-      where: {
-        userId: userId,
-        expiresAt: {
-        gte: new Date(),
-      } },
-      select: {
-        jti: true,
-        deviceId: true,
-        ipAddress: true,
-        userAgent: true,
-        expiresAt: true,
-        createdAt: true,
-      },
-    });
+router.get(
+  "/sessions",
+  authenticateToken,
+  sessionsRateLimiter,
+  async (req, res) => {
+    try {
+      const userId = req.user.sub;
+      const sessions = await prisma.refreshToken.findMany({
+        where: {
+          userId: userId,
+          expiresAt: {
+            gte: new Date(),
+          },
+        },
+        select: {
+          jti: true,
+          deviceId: true,
+          ipAddress: true,
+          userAgent: true,
+          expiresAt: true,
+          createdAt: true,
+        },
+      });
 
-    res.status(200).json({
-      message: "Sessions retrieved successfully",
-      sessions: sessions,
-    });
-  } catch (err) {
-    console.error("Error retrieving sessions:", err);
-    res.status(500).json({
-      error: "Server error",
-      message: "An unexpected error occurred while retrieving sessions",
-    });
+      res.status(200).json({
+        message: "Sessions retrieved successfully",
+        sessions: sessions,
+      });
+    } catch (err) {
+      console.error("Error retrieving sessions:", err);
+      res.status(500).json({
+        error: "Server error",
+        message: "An unexpected error occurred while retrieving sessions",
+      });
+    }
   }
-})
+);
 
 router.post("/login", loginValidation, loginRateLimiter, async (req, res) => {
   const { email, password, deviceId } = req.body;
   const ipAddress = req.ip;
-  const userAgent = req.headers['user-agent'];
+  const userAgent = req.headers["user-agent"];
   try {
     const user = await prisma.user.findUnique({
       where: { email: email },
@@ -187,7 +213,12 @@ router.post("/login", loginValidation, loginRateLimiter, async (req, res) => {
     }
 
     const accesstoken = await createAccessToken(user);
-    const refreshtoken = await createRefreshToken(user, deviceId, ipAddress, userAgent);
+    const refreshtoken = await createRefreshToken(
+      user,
+      deviceId,
+      ipAddress,
+      userAgent
+    );
 
     const decodedPayload = decodeJwt(accesstoken);
     console.log("Decoded JWT Payload:", decodedPayload);
@@ -212,69 +243,84 @@ router.post("/login", loginValidation, loginRateLimiter, async (req, res) => {
   }
 });
 
-router.post("/token", verifyRefreshTokens, tokenRateLimiter, async (req, res) => {
-  const jtiOldToken = req.jtiOldToken;
-  const userId = req.user.id;
-  const deviceId = req.user.deviceId;
+router.post(
+  "/token",
+  verifyRefreshTokens,
+  tokenRateLimiter,
+  async (req, res) => {
+    const jtiOldToken = req.jtiOldToken;
+    const userId = req.user.id;
+    const deviceId = req.user.deviceId;
 
-  const ipAddress = req.ip;
-  const userAgent = req.headers['user-agent'];
-  try {
-    const accesstoken = await createAccessToken(req.user);
-    const refreshtoken = await createRefreshToken(req.user, deviceId, ipAddress, userAgent);
+    const ipAddress = req.ip;
+    const userAgent = req.headers["user-agent"];
+    try {
+      const accesstoken = await createAccessToken(req.user);
+      const refreshtoken = await createRefreshToken(
+        req.user,
+        deviceId,
+        ipAddress,
+        userAgent
+      );
 
-    const decodedPayload = decodeJwt(accesstoken);
-    console.log("Decoded JWT Payload:", decodedPayload);
+      const decodedPayload = decodeJwt(accesstoken);
+      console.log("Decoded JWT Payload:", decodedPayload);
 
-    await prisma.refreshToken.delete({
-      where: {
-        userId: userId,
-        jti: jtiOldToken,
-      },
-    });
+      await prisma.refreshToken.delete({
+        where: {
+          userId: userId,
+          jti: jtiOldToken,
+        },
+      });
 
-    res.status(200).json({
-      accesstoken: accesstoken,
-      refreshtoken: refreshtoken,
-      message: "Tokens refreshed successfully",
-    });
-  } catch (err) {
-    console.log("Token refresh error:", err);
-    res.status(500).json({
-      error: "server error",
-      message: "An unexpected error occurred during token refresh.",
-    });
-  }
-});
-
-router.delete("/logout", (req, res) => {
-  const refreshToken = req.body.token;
-  jwt.verify(
-    refreshToken,
-    process.env.REFRESH_TOKEN_SECRET,
-    async (err, decoded) => {
-      if (err) {
-        return res.sendStatus(401);
-      }
-      const userId = decoded.sub;
-      const jti = decoded.jti;
-      try {
-        await prisma.refreshToken.delete({
-          where: {
-            userId,
-            jti,
-          },
-        });
-
-        res.status(200).json({ message: "Logout successful" });
-      } catch (err) {
-        res.status(500).json({ error: "Token deletion failed" });
-      }
+      res.status(200).json({
+        accesstoken: accesstoken,
+        refreshtoken: refreshtoken,
+        message: "Tokens refreshed successfully",
+      });
+    } catch (err) {
+      console.log("Token refresh error:", err);
+      res.status(500).json({
+        error: "server error",
+        message: "An unexpected error occurred during token refresh.",
+      });
     }
-  );
-});
+  }
+);
 
-router.delete("/sessions", authenticateToken, async (req, res) => {
+router.delete(
+  "/logout",
+  authenticateToken,
+  logoutSpecificRateLimiter,
+  async (req, res) => {
+    const userId = req.user.id;
+    const jti = req.user.jti;
+
+    if (!userId || !jti) {
+      return res
+        .status(400)
+        .json({ message: "Invalid token payload for logout." });
+    }
+
+    try {
+      await prisma.refreshToken.deleteMany({
+        where: {
+          userId: userId,
+          jti: jti,
+        },
+      });
+
+      res
+        .status(200)
+        .json({ message: "Logout successful for current session." });
+    } catch (err) {
+      console.error("Error during logout:", err);
+      res.status(500).json({ error: "Server error during logout." });
+    }
+  }
+);
+
+router.delete("/sessions", authenticateToken, logoutAllRateLimiter, async (req, res) => {
   const userId = req.user.sub;
   try {
     await prisma.refreshToken.deleteMany({
@@ -297,8 +343,7 @@ router.delete("/sessions", authenticateToken, async (req, res) => {
   }
 });
 
-
-router.delete("/sessions/:jti", authenticateToken, async (req, res) => {
+router.delete("/sessions/:jti", authenticateToken, logoutSpecificRateLimiter, async (req, res) => {
   const jti = req.params.jti;
   const userId = req.user.sub;
 
@@ -312,14 +357,13 @@ router.delete("/sessions/:jti", authenticateToken, async (req, res) => {
       where: {
         jti: jti,
         userId: userId,
-       }
+      },
     });
 
     if (deletedToken.count === 0) {
       return res.status(404).json({
         message: "Session not found or already deleted",
       });
-      
     }
     res.status(200).json({
       message: "Session deleted successfully",
@@ -331,6 +375,6 @@ router.delete("/sessions/:jti", authenticateToken, async (req, res) => {
       message: "An unexpected error occurred while deleting the session",
     });
   }
-})
+});
 
 module.exports = router;
