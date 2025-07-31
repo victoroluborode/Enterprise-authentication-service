@@ -10,14 +10,18 @@ const redisOptions = {
   enableOfflineQueue: true,
 };
 
-const redis = new Redis(redisOptions);
+const redisClient = new Redis(redisOptions);
 
-redis.on('connect', () => {
-    console.log('Connected to Redis!');
-});
+redisClient.on("connect", () =>
+  console.log("Redis client: Attempting to connect...")
+);
+redisClient.on("ready", () =>
+  console.log("Redis client: Successfully connected and ready!")
+);
+redisClient.on("error", (err) => console.error("Redis client: Error -", err));
+redisClient.on("end", () => console.log("Redis client: Connection closed."));
+redisClient.on("reconnecting", () =>
+  console.log("Redis client: Reconnecting...")
+);
 
-redis.on('error', (err) => {
-    console.error('Redis connection error:', err);
-});
-
-module.exports = redis;
+module.exports = redisClient;
