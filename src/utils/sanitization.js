@@ -24,4 +24,4 @@ const sanitizeFields = (fields) => {
     next();
 };
 
-module.exports = sanitizeFields;
+module.exports = {sanitizeFields};

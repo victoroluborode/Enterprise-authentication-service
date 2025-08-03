@@ -3,6 +3,7 @@ const express = require("express");
 const router = express.Router();
 const registerUser = require("../services/userService");
 const { registerValidation, loginValidation, tokenValidation } = require("../utils/validation");
+const {sanitizeFields} = require("../utils/sanitization");
 const { authenticateToken } = require("../middleware/auth");
 const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
@@ -73,7 +74,7 @@ const posts = [
 
 router.post(
   "/register",
-  registerValidation,
+  registerValidation,sanitizeFields,
   registerRateLimiter,
   async (req, res) => {
     const { email, password, fullname, deviceId } = req.body;
@@ -190,7 +191,7 @@ router.get(
   }
 );
 
-router.post("/login", loginValidation, loginRateLimiter, async (req, res) => {
+router.post("/login", loginValidation, sanitizeFields, loginRateLimiter, async (req, res) => {
   const { email, password, deviceId } = req.body;
   const ipAddress = req.ip;
   const userAgent = req.headers["user-agent"];
