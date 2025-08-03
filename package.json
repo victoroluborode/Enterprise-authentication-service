@@ -35,7 +35,8 @@
     "rate-limit-redis": "^4.2.1",
     "redis": "^5.6.1",
     "uuid": "^11.1.0",
-    "winston": "^3.17.0"
+    "winston": "^3.17.0",
+    "xss": "^1.0.15"
   },
   "devDependencies": {
     "autoprefixer": "^10.4.21",

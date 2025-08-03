@@ -2,7 +2,7 @@ require("dotenv").config();
 const express = require("express");
 const router = express.Router();
 const registerUser = require("../services/userService");
-const { registerValidation, loginValidation } = require("../utils/validation");
+const { registerValidation, loginValidation, tokenValidation } = require("../utils/validation");
 const { authenticateToken } = require("../middleware/auth");
 const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
@@ -244,7 +244,7 @@ router.post("/login", loginValidation, loginRateLimiter, async (req, res) => {
 });
 
 router.post(
-  "/token",
+  "/token", tokenValidation,
   verifyRefreshTokens,
   tokenRateLimiter,
   async (req, res) => {
