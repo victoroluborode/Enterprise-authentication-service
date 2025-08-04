@@ -26,52 +26,6 @@ const {
   logoutSpecificRateLimiter,
 } = require("../middleware/ratelimiter");
 
-const posts = [
-  {
-    email: "packma110@gmail.com",
-    title: "How I Learned Node.js",
-    body: "I started learning Node.js by building a personal blog API. The concepts were tough at first, but breaking them into small tasks helped a lot.",
-    createdAt: "2025-07-14T10:00:00Z",
-    author: {
-      name: "Pack Ma",
-      bio: "Backend developer in training, passionate about scalable systems and clean code.",
-      avatar: "https://example.com/avatar1.png",
-    },
-  },
-  {
-    email: "Pinkedin110@gmail.com",
-    title: "My DevOps Journey",
-    body: "Discovering Docker, GitHub Actions, and infrastructure as code completely changed how I think about deployment.",
-    createdAt: "2025-07-13T16:45:00Z",
-    author: {
-      name: "Pinked In",
-      bio: "Cloud enthusiast. DevOps engineer who enjoys making things reliable and reproducible.",
-      avatar: "https://example.com/avatar2.png",
-    },
-  },
-  {
-    email: "sainthuncho110@gmail.com",
-    title: "Debugging JavaScript",
-    body: "One bug took me 4 hours to solve — missing an `await` in an async function. Debugging can be frustrating but so rewarding when you finally get it.",
-    createdAt: "2025-07-12T08:30:00Z",
-    author: {
-      name: "Victor Oluborode",
-      bio: "Backend developer in training, passionate about scalable systems and clean code.",
-      avatar: "https://example.com/avatar1.png",
-    },
-  },
-  {
-    email: "kiaricephus110@gmail.com",
-    title: "What I Wish I Knew Before Learning AWS",
-    body: "IAM permissions are no joke. I locked myself out twice. But once I understood the roles and policies, everything clicked.",
-    createdAt: "2025-07-10T14:20:00Z",
-    author: {
-      name: "Kiari Cephus",
-      bio: "Cloud enthusiast. DevOps engineer who enjoys making things reliable and reproducible.",
-      avatar: "https://example.com/avatar2.png",
-    },
-  },
-];
 
 router.post(
   "/register",
@@ -162,12 +116,14 @@ router.post("/post", authenticateToken, createPostRateLimiter, postValidation, s
 } )
 
 router.get("/posts", authenticateToken, postsRateLimiter, async (req, res) => {
-  const email = req.query.email;
-  console.log(email);
+  const userId = req.user.sub;
   try {
+    const posts = await prisma.post.findMany({
+      where: {userId: userId}
+    })
     res.status(200).json({
       message: "Access Granted",
-      posts: posts.filter((post) => post.email === email),
+      posts: posts
     });
   } catch (err) {
     console.error("error:", err);
