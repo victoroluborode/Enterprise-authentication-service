@@ -15,6 +15,17 @@ model user {
   tokenVersion Int @default(0)
   roles UserRole[]
   refreshTokens refreshToken[]
+  posts Post[]
+}
+
+model Post {
+  id Int @id @default(autoincrement())
+  title String
+  content String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  userId Int
+  user user @relation(fields: [userId], references: [id])
 }
 
 model Role {

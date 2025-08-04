@@ -41,6 +41,21 @@ const loginValidation = [
   },
 ];
 
+const postValidation = [
+  body('title').notEmpty().withMessage("Title is required"),
+  body('content').notEmpty().withMessage('Content is required').isLength({ min: 10 }).withMessage('Content must be atleast 10 characters'),
+  
+  (req, res, next) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        message: errors.array(),
+      })
+    }
+    next();
+  }
+]
+
 
 const tokenValidation = [
   body('token').notEmpty().withMessage("Refresh token required"),
@@ -55,4 +70,4 @@ const tokenValidation = [
   }
 ]
 
-module.exports = { tokenValidation, registerValidation, loginValidation };
+module.exports = { tokenValidation, registerValidation, loginValidation, postValidation };

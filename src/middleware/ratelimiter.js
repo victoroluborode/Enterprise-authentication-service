@@ -88,6 +88,17 @@ const postsRateLimiter = createLimiter({
   prefix: "posts_rate_limit_",
 });
 
+const createPostRateLimiter = createLimiter({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  message: "Too many posts created. Please try again later.",
+  type: "User-based",
+  keyGenerator: (req) => 
+    req.user ? `create_post_${req.user.id}` : rateLimit.ipKeyGenerator(req),
+  prefix: "create_post_rate_limit_",
+});
+
+
 const sessionsRateLimiter = createLimiter({
   windowMs: 1 * 60 * 1000,
   max: 20,
@@ -127,6 +138,7 @@ module.exports = {
   tokenRateLimiter,
   registerRateLimiter,
   postsRateLimiter,
+  createPostRateLimiter,
   sessionsRateLimiter,
   logoutAllRateLimiter,
   logoutSpecificRateLimiter,

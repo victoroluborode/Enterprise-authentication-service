@@ -10,18 +10,21 @@ const sanitizeFields = (fields) => {
         if (!req.body || typeof req.body !== 'object') {
             return next();
         }
-    }
 
-    fields.forEach(field => {
-        if (req.body.hasOwnProperty(field) && typeof req.body[field] === 'string') {
+        fields.forEach((field) => {
+          if (
+            req.body.hasOwnProperty(field) &&
+            typeof req.body[field] === "string"
+          ) {
             req.body[field] = DOMPurify.sanitize(req.body[field], {
-                ALLOWED_TAGS: [],
-                ALLOWED_ATTR: []
+              ALLOWED_TAGS: [],
+              ALLOWED_ATTR: [],
             });
-        }
-    });
+          }
+        });
 
-    next();
+        next();
+    }
 };
 
 module.exports = {sanitizeFields};

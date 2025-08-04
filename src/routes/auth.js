@@ -2,7 +2,7 @@ require("dotenv").config();
 const express = require("express");
 const router = express.Router();
 const registerUser = require("../services/userService");
-const { registerValidation, loginValidation, tokenValidation } = require("../utils/validation");
+const { registerValidation, loginValidation, tokenValidation, postValidation } = require("../utils/validation");
 const {sanitizeFields} = require("../utils/sanitization");
 const { authenticateToken } = require("../middleware/auth");
 const { PrismaClient } = require("@prisma/client");
@@ -20,6 +20,7 @@ const {
   tokenRateLimiter,
   registerRateLimiter,
   postsRateLimiter,
+  createPostRateLimiter,
   sessionsRateLimiter,
   logoutAllRateLimiter,
   logoutSpecificRateLimiter,
@@ -74,7 +75,7 @@ const posts = [
 
 router.post(
   "/register",
-  registerValidation,sanitizeFields,
+  registerValidation,sanitizeFields(["email", "password", "fullname", "deviceId"]),
   registerRateLimiter,
   async (req, res) => {
     const { email, password, fullname, deviceId } = req.body;
@@ -136,6 +137,30 @@ router.post(
   }
 );
 
+
+router.post("/post", authenticateToken, createPostRateLimiter, postValidation, sanitizeFields(["title", "content"]), async (req, res) => {
+  const { title, content } = req.body;
+  const userId = req.user.sub;
+  try {
+    const newPost = await prisma.Post.create({
+      data: {
+        title: title,
+        content: content,
+        userId: userId
+      }
+    });
+
+    res.status(201).json({
+      message: "Post created successfully",
+      post: newPost
+    })
+  } catch (err) {
+    res.status(500).json({
+      error: "Failed to create post"
+    })
+  }
+} )
+
 router.get("/posts", authenticateToken, postsRateLimiter, async (req, res) => {
   const email = req.query.email;
   console.log(email);
@@ -191,7 +216,7 @@ router.get(
   }
 );
 
-router.post("/login", loginValidation, sanitizeFields, loginRateLimiter, async (req, res) => {
+router.post("/login", loginValidation, sanitizeFields(["email", "password", "deviceId"]), loginRateLimiter, async (req, res) => {
   const { email, password, deviceId } = req.body;
   const ipAddress = req.ip;
   const userAgent = req.headers["user-agent"];
