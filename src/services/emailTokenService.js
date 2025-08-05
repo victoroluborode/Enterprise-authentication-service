@@ -18,4 +18,6 @@ const createEmailToken = async (userId) => {
     return token;
 };
 
+module.exports = { createEmailToken };
+
 

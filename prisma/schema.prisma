@@ -10,6 +10,7 @@ datasource db {
 model user {
   id        Int     @id @default(autoincrement())
   email     String  @unique
+  emailVerified Boolean @default(false)
   password  String
   fullname String?
   tokenVersion Int @default(0)

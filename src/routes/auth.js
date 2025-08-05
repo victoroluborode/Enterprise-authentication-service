@@ -92,6 +92,9 @@ router.post(
 );
 
 
+router.get("/verify-email", )
+
+
 router.post("/post", authenticateToken, createPostRateLimiter, postValidation, sanitizeFields(["title", "content"]), async (req, res) => {
   const { title, content } = req.body;
   const userId = req.user.sub;
