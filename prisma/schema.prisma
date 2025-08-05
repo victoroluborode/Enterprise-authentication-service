@@ -16,6 +16,7 @@ model user {
   roles UserRole[]
   refreshTokens refreshToken[]
   posts Post[]
+  emailverificationtokens EmailVerificationToken[]
 }
 
 model Post {
@@ -26,6 +27,17 @@ model Post {
   updatedAt DateTime @updatedAt
   userId Int
   user user @relation(fields: [userId], references: [id])
+}
+
+model EmailVerificationToken {
+  id Int @id @default(autoincrement())
+  userId Int
+  user user @relation(fields: [userId], references: [id])
+  token String @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
 }
 
 model Role {
