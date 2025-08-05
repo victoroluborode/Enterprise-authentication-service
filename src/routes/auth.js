@@ -25,6 +25,7 @@ const {
   logoutAllRateLimiter,
   logoutSpecificRateLimiter,
 } = require("../middleware/ratelimiter");
+const { verifyEmailToken } = require("../services/emailTokenService");
 
 
 router.post(
@@ -49,7 +50,8 @@ router.post(
         });
       }
 
-      const userWithRoles = await registerUser(email, password, fullname);
+      const { userWithRoles, verificationlink } = await registerUser(email, password, fullname);
+      console.log(verificationlink);
       const userRoles = userWithRoles.roles.map(
         (userRole) => userRole.role.name
       );
@@ -77,6 +79,7 @@ router.post(
       res.status(201).json({
         success: true,
         message: `User registered successfully.`,
+        verificationLink: verificationlink,
         accessToken,
         refreshToken: refreshToken.token,
         user: userResponse,
@@ -92,7 +95,11 @@ router.post(
 );
 
 
-router.get("/verify-email", )
+router.get("/verify-email", verifyEmailToken, async (req, res) => {
+  return res.status(200).json({
+    message: "Email successfully verified ✅",
+  });
+} )
 
 
 router.post("/post", authenticateToken, createPostRateLimiter, postValidation, sanitizeFields(["title", "content"]), async (req, res) => {

@@ -2,7 +2,7 @@ const bcrypt = require("bcrypt");
 const { createEmailToken } = require("../services/emailTokenService");
 const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
-const sendEmail = require("../utils/emailservice");
+const { sendEmail } = require("../utils/emailservice");
 const verificationEmailTemplate =
   require("../utils/template").verificationEmailTemplate;
 
@@ -49,7 +49,7 @@ async function registerUser(email, password, fullname) {
     });
 
     const emailToken = await createEmailToken(newUser.id);
-    const verificationlink = `http://localhost:3000/verify-email?token=${emailToken}`;
+    const verificationlink = `http://localhost:3000/api/auth/verify-email?token=${emailToken}`;
     const html = verificationEmailTemplate(verificationlink);
 
     await sendEmail({
@@ -59,7 +59,7 @@ async function registerUser(email, password, fullname) {
     });
 
     console.log("User created", userWithRoles);
-    return userWithRoles;
+      return { userWithRoles, verificationlink };
   } catch (err) {
     console.log("Registration failed:", err);
   }

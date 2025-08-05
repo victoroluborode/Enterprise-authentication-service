@@ -71,7 +71,7 @@ const tokenRateLimiter = createLimiter({
 
 const registerRateLimiter = createLimiter({
   windowMs: 15 * 60 * 1000,
-  max: 5,
+  max: 20,
   message:
     "Too many registration attempts from this IP, please try again after 15 minutes.",
   type: "IP-based",
