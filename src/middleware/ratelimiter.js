@@ -158,6 +158,18 @@ const changePasswordLimiter = createLimiter({
   prefix: "change_password_rate_limit_",
 });
 
+const forgotPasswordLimiter = createLimiter({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 3,
+  message:
+    "Too many password reset requests. Please try again after 15 minutes.",
+  type: "User-based",
+  keyGenerator: (req) =>
+    req.body.email
+      ? `forgot_password_${req.body.email}`
+      : rateLimit.ipKeyGenerator(req),
+  prefix: "forgot_password_rate_limit_",
+});
 
 module.exports = {
   globalRateLimiter,
@@ -171,4 +183,5 @@ module.exports = {
   logoutSpecificRateLimiter,
   resendVerificationLimiter,
   changePasswordLimiter,
+  forgotPasswordLimiter,
 };

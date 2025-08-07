@@ -8,6 +8,7 @@ const {
   tokenValidation,
   postValidation,
   changePasswordValidation,
+  forgotPasswordValidation,
 } = require("../utils/validation");
 const { sanitizeFields } = require("../utils/sanitization");
 const { authenticateToken } = require("../middleware/auth");
@@ -32,6 +33,7 @@ const {
   logoutSpecificRateLimiter,
   resendVerificationLimiter,
   changePasswordLimiter,
+  forgotPasswordLimiter,
 } = require("../middleware/ratelimiter");
 const {
   createEmailToken,
@@ -231,7 +233,7 @@ router.post(
       const hashedNewPassword = await bcrypt.hash(newpassword, 10);
 
       await prisma.user.update({
-        where: {id: userId},
+        where: { id: userId },
         data: {
           password: hashedNewPassword,
         },
@@ -240,7 +242,6 @@ router.post(
       res.status(200).json({
         message: "Password changed successfully",
       });
-
     } catch (err) {
       console.error(err);
       res.status(500).json({
@@ -249,6 +250,61 @@ router.post(
     }
   }
 );
+
+router.post("/forgot-password", forgotPasswordLimiter, forgotPasswordValidation, async (req, res) => {
+  const { email } = req.body;
+  try {
+    const user = await prisma.user.findUnique({
+      where: { email: email },
+    });
+
+    if (!user) {
+      return res.status(200).json({
+        message:
+          "If that email is associated with an account, you’ll receive a reset link shortly.",
+      });
+    }
+
+    const userId = user.id;
+
+    await prisma.passwordResetToken.deleteMany({
+      where: { userId },
+    });
+
+    const token = crypto.randomBytes(32).toString("hex");
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
+    const passwordResetToken = await bcrypt.hash(token, 10);
+
+    await prisma.passwordResetToken.create({
+      data: {
+        userId: userId,
+        token: passwordResetToken,
+        expiresAt: expiresAt,
+      },
+    });
+
+    const resetPasswordLink = `http://localhost:3000/api/auth/reset-password?token=${token}`;
+    const html = resetPasswordEmailTemplate(resetPasswordLink);
+
+    await sendEmail({
+      to: email,
+      subject: "Reset your password",
+      html: html,
+    });
+
+    res.status(200).json({
+      message:
+        "If an account with that email exists, a password reset link has been sent.",
+      resetPasswordLink: resetPasswordLink,
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      error: "Server error"
+    })
+  }
+});
 
 router.get("/posts", authenticateToken, postsRateLimiter, async (req, res) => {
   const userId = req.user.sub;
