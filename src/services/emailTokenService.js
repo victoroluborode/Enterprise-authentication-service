@@ -27,49 +27,66 @@ const verifyEmailToken = async (req, res, next) => {
       });
     }
 
+    await prisma.emailVerificationToken.deleteMany({
+      where: {
+        expiresAt: {
+          lt: new Date(),
+        },
+      },
+    });
+    
     const emailTokens = await prisma.emailVerificationToken.findMany({
       where: {
-            expiresAt: {
-              gt: new Date(),
-        }
+        expiresAt: {
+          gt: new Date(),
+        },
       },
     });
 
-      let matchedToken;
+    let matchedToken;
 
-      for (let dbToken of emailTokens) {
-        const match = await bcrypt.compare(token, dbToken.token);
-        if (match) {
-          matchedToken = dbToken;
-          break;
-        }
+    for (let dbToken of emailTokens) {
+      const match = await bcrypt.compare(token, dbToken.token);
+      if (match) {
+        matchedToken = dbToken;
+        break;
       }
-      
+    }
 
     if (!matchedToken) {
       return res.status(401).json({
         message: "Invalid token",
       });
     }
-      
-      await prisma.user.update({
-          where: {
-              id: matchedToken.userId
-          },
-          data: {
-              emailVerified: true
-          }
-      });
 
-      await prisma.emailVerificationToken.delete({
-          where: {
-              id: matchedToken.id
-          }
-      })
+    const user = await prisma.user.findUnique({
+      where: { id: matchedToken.userId },
+    });
+
+    if (user.emailVerified) {
+      return res.status(400).json({ message: "Email already verified" });
+    }
+
+    await prisma.user.update({
+      where: {
+        id: matchedToken.userId,
+      },
+      data: {
+        emailVerified: true,
+      },
+    });
+
+    await prisma.emailVerificationToken.delete({
+      where: {
+        id: matchedToken.id,
+      },
+    });
 
     res.status(200).json({
       message: "Email verified successful",
     });
+
+    
   } catch (err) {
     res.status(500).json({
       error: "Server error",

@@ -2,8 +2,13 @@ require("dotenv").config();
 const express = require("express");
 const router = express.Router();
 const registerUser = require("../services/userService");
-const { registerValidation, loginValidation, tokenValidation, postValidation } = require("../utils/validation");
-const {sanitizeFields} = require("../utils/sanitization");
+const {
+  registerValidation,
+  loginValidation,
+  tokenValidation,
+  postValidation,
+} = require("../utils/validation");
+const { sanitizeFields } = require("../utils/sanitization");
 const { authenticateToken } = require("../middleware/auth");
 const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
@@ -24,13 +29,18 @@ const {
   sessionsRateLimiter,
   logoutAllRateLimiter,
   logoutSpecificRateLimiter,
+  resendVerificationLimiter
 } = require("../middleware/ratelimiter");
-const { verifyEmailToken } = require("../services/emailTokenService");
-
+const {
+  createEmailToken,
+  verifyEmailToken,
+} = require("../services/emailTokenService");
+const verificationEmailTemplate = require("../utils/template");
 
 router.post(
   "/register",
-  registerValidation,sanitizeFields(["email", "password", "fullname", "deviceId"]),
+  registerValidation,
+  sanitizeFields(["email", "password", "fullname", "deviceId"]),
   registerRateLimiter,
   async (req, res) => {
     const { email, password, fullname, deviceId } = req.body;
@@ -50,7 +60,11 @@ router.post(
         });
       }
 
-      const { userWithRoles, verificationlink } = await registerUser(email, password, fullname);
+      const { userWithRoles, verificationlink } = await registerUser(
+        email,
+        password,
+        fullname
+      );
       console.log(verificationlink);
       const userRoles = userWithRoles.roles.map(
         (userRole) => userRole.role.name
@@ -94,46 +108,104 @@ router.post(
   }
 );
 
-
 router.get("/verify-email", verifyEmailToken, async (req, res) => {
-  return res.status(200).json({
-    message: "Email successfully verified ✅",
-  });
-} )
-
-
-router.post("/post", authenticateToken, createPostRateLimiter, postValidation, sanitizeFields(["title", "content"]), async (req, res) => {
-  const { title, content } = req.body;
-  const userId = req.user.sub;
   try {
-    const newPost = await prisma.Post.create({
-      data: {
-        title: title,
-        content: content,
-        userId: userId
-      }
+    return res.status(200).json({
+      message: "Email successfully verified ✅",
+    });
+  } catch (err) {
+    return res.status(500).json({
+      error: "Server error",
+    });
+  }
+});
+
+router.post("/resend-verification-email", resendVerificationLimiter, async (req, res) => {
+  const email = req.body.email;
+  try {
+    const user = await prisma.user.findUnique({
+      where: {
+        email: email,
+      },
     });
 
-    res.status(201).json({
-      message: "Post created successfully",
-      post: newPost
-    })
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found",
+      });
+    }
+
+    if (user.emailVerified) {
+      return res.status(400).json({
+        message: "Email already verified",
+      });
+    }
+
+    await prisma.emailVerificationToken.deleteMany({
+      where: { userId: user.id },
+    });
+
+    const emailToken = await createEmailToken(user.id);
+    const verificationlink = `http://localhost:3000/api/auth/verify-email?token=${emailToken}`;
+    const html = verificationEmailTemplate(verificationlink);
+
+    await sendEmail({
+      to: email,
+      subject: "Verify your email",
+      html: html,
+    });
+
+    res.status(200).json({
+      message: "Verification email resent successfully",
+      verificationlink: verificationlink,
+    });
   } catch (err) {
+    console.error(err);
     res.status(500).json({
-      error: "Failed to create post"
-    })
+      error: "Server error",
+    });
   }
-} )
+});
+
+router.post(
+  "/post",
+  authenticateToken,
+  createPostRateLimiter,
+  postValidation,
+  sanitizeFields(["title", "content"]),
+  async (req, res) => {
+    const { title, content } = req.body;
+    const userId = req.user.sub;
+    try {
+      const newPost = await prisma.post.create({
+        data: {
+          title: title,
+          content: content,
+          userId: userId,
+        },
+      });
+
+      res.status(201).json({
+        message: "Post created successfully",
+        post: newPost,
+      });
+    } catch (err) {
+      res.status(500).json({
+        error: "Failed to create post",
+      });
+    }
+  }
+);
 
 router.get("/posts", authenticateToken, postsRateLimiter, async (req, res) => {
   const userId = req.user.sub;
   try {
     const posts = await prisma.post.findMany({
-      where: {userId: userId}
-    })
+      where: { userId: userId },
+    });
     res.status(200).json({
       message: "Access Granted",
-      posts: posts
+      posts: posts,
     });
   } catch (err) {
     console.error("error:", err);
@@ -182,61 +254,68 @@ router.get(
   }
 );
 
-router.post("/login", loginValidation, sanitizeFields(["email", "password", "deviceId"]), loginRateLimiter, async (req, res) => {
-  const { email, password, deviceId } = req.body;
-  const ipAddress = req.ip;
-  const userAgent = req.headers["user-agent"];
-  try {
-    const user = await prisma.user.findUnique({
-      where: { email: email },
-    });
-    if (!user) {
-      return res.status(401).json({
-        message: "Invalid email or password",
+router.post(
+  "/login",
+  loginValidation,
+  sanitizeFields(["email", "password", "deviceId"]),
+  loginRateLimiter,
+  async (req, res) => {
+    const { email, password, deviceId } = req.body;
+    const ipAddress = req.ip;
+    const userAgent = req.headers["user-agent"];
+    try {
+      const user = await prisma.user.findUnique({
+        where: { email: email },
+      });
+      if (!user) {
+        return res.status(401).json({
+          message: "Invalid email or password",
+        });
+      }
+
+      const isPasswordValid = await bcrypt.compare(password, user.password);
+
+      if (!isPasswordValid) {
+        return res.status(401).json({
+          message: "Invalid email or password",
+        });
+      }
+
+      const accesstoken = await createAccessToken(user);
+      const refreshtoken = await createRefreshToken(
+        user,
+        deviceId,
+        ipAddress,
+        userAgent
+      );
+
+      const decodedPayload = decodeJwt(accesstoken);
+      console.log("Decoded JWT Payload:", decodedPayload);
+
+      const userResponse = {
+        id: user.id,
+        email: user.email,
+        fullname: user.fullname,
+      };
+
+      res.status(200).json({
+        accesstoken: accesstoken,
+        refreshtoken: refreshtoken,
+        message: "Login successful",
+        user: userResponse,
+      });
+    } catch (err) {
+      console.log("Login error:", err);
+      res.status(500).json({
+        error: "Server error",
       });
     }
-
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-
-    if (!isPasswordValid) {
-      return res.status(401).json({
-        message: "Invalid email or password",
-      });
-    }
-
-    const accesstoken = await createAccessToken(user);
-    const refreshtoken = await createRefreshToken(
-      user,
-      deviceId,
-      ipAddress,
-      userAgent
-    );
-
-    const decodedPayload = decodeJwt(accesstoken);
-    console.log("Decoded JWT Payload:", decodedPayload);
-
-    const userResponse = {
-      id: user.id,
-      email: user.email,
-      fullname: user.fullname,
-    };
-
-    res.status(200).json({
-      accesstoken: accesstoken,
-      refreshtoken: refreshtoken,
-      message: "Login successful",
-      user: userResponse,
-    });
-  } catch (err) {
-    console.log("Login error:", err);
-    res.status(500).json({
-      error: "Server error",
-    });
   }
-});
+);
 
 router.post(
-  "/token", tokenValidation,
+  "/token",
+  tokenValidation,
   verifyRefreshTokens,
   tokenRateLimiter,
   async (req, res) => {
@@ -312,61 +391,71 @@ router.delete(
   }
 );
 
-router.delete("/sessions", authenticateToken, logoutAllRateLimiter, async (req, res) => {
-  const userId = req.user.sub;
-  try {
-    await prisma.refreshToken.deleteMany({
-      where: {
-        userId: userId,
-      },
-    });
-    await prisma.user.update({
-      where: { id: userId },
-      data: { tokenVersion: { increment: 1 } },
-    });
-    res.status(200).json({
-      message: "Logged out from all devices",
-    });
-  } catch (err) {
-    res.status(500).json({
-      error: "Server error",
-      message: "An unexpected error occurred during logout all",
-    });
-  }
-});
-
-router.delete("/sessions/:jti", authenticateToken, logoutSpecificRateLimiter, async (req, res) => {
-  const jti = req.params.jti;
-  const userId = req.user.sub;
-
-  if (!jti) {
-    return res
-      .status(400)
-      .json({ message: "Session ID (jti) is required in the path." });
-  }
-  try {
-    const deletedToken = await prisma.refreshToken.deleteMany({
-      where: {
-        jti: jti,
-        userId: userId,
-      },
-    });
-
-    if (deletedToken.count === 0) {
-      return res.status(404).json({
-        message: "Session not found or already deleted",
+router.delete(
+  "/sessions",
+  authenticateToken,
+  logoutAllRateLimiter,
+  async (req, res) => {
+    const userId = req.user.sub;
+    try {
+      await prisma.refreshToken.deleteMany({
+        where: {
+          userId: userId,
+        },
+      });
+      await prisma.user.update({
+        where: { id: userId },
+        data: { tokenVersion: { increment: 1 } },
+      });
+      res.status(200).json({
+        message: "Logged out from all devices",
+      });
+    } catch (err) {
+      res.status(500).json({
+        error: "Server error",
+        message: "An unexpected error occurred during logout all",
       });
     }
-    res.status(200).json({
-      message: "Session deleted successfully",
-    });
-  } catch (err) {
-    console.error("Error deleting session:", err);
-    res.status(500).json({
-      error: "Server error",
-      message: "An unexpected error occurred while deleting the session",
-    });
   }
-});
+);
+
+router.delete(
+  "/sessions/:jti",
+  authenticateToken,
+  logoutSpecificRateLimiter,
+  async (req, res) => {
+    const jti = req.params.jti;
+    const userId = req.user.sub;
+
+    if (!jti) {
+      return res
+        .status(400)
+        .json({ message: "Session ID (jti) is required in the path." });
+    }
+    try {
+      const deletedToken = await prisma.refreshToken.deleteMany({
+        where: {
+          jti: jti,
+          userId: userId,
+        },
+      });
+
+      if (deletedToken.count === 0) {
+        return res.status(404).json({
+          message: "Session not found or already deleted",
+        });
+      }
+      res.status(200).json({
+        message: "Session deleted successfully",
+      });
+    } catch (err) {
+      console.error("Error deleting session:", err);
+      res.status(500).json({
+        error: "Server error",
+        message: "An unexpected error occurred while deleting the session",
+      });
+    }
+  }
+);
 
 module.exports = router;

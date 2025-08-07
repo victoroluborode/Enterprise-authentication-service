@@ -132,6 +132,20 @@ const logoutSpecificRateLimiter = createLimiter({
   prefix: "logout_specific_rate_limit_",
 });
 
+const resendVerificationLimiter = createLimiter({
+  windowMs: 10 * 60 * 1000, 
+  max: 2, 
+  message:
+    "Too many resend verification requests. Please try again after 10 minutes.",
+  type: "User-based",
+  keyGenerator: (req) =>
+    req.body.email
+      ? `resend_verification_${req.body.email}`
+      : rateLimit.ipKeyGenerator(req),
+  prefix: "resend_verification_rate_limit_",
+});
+
+
 module.exports = {
   globalRateLimiter,
   loginRateLimiter,
@@ -142,4 +156,5 @@ module.exports = {
   sessionsRateLimiter,
   logoutAllRateLimiter,
   logoutSpecificRateLimiter,
+  resendVerificationLimiter,
 };
