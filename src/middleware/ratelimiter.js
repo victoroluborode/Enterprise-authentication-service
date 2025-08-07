@@ -145,6 +145,19 @@ const resendVerificationLimiter = createLimiter({
   prefix: "resend_verification_rate_limit_",
 });
 
+const changePasswordLimiter = createLimiter({
+  windowMs: 30 * 60 * 1000, 
+  max: 3, 
+  message:
+    "Too many password change attempts. Please try again after 30 minutes.",
+  type: "User-based",
+  keyGenerator: (req) =>
+    req.user?.sub
+      ? `change_password_${req.user.sub}`
+      : rateLimit.ipKeyGenerator(req), 
+  prefix: "change_password_rate_limit_",
+});
+
 
 module.exports = {
   globalRateLimiter,
@@ -157,4 +170,5 @@ module.exports = {
   logoutAllRateLimiter,
   logoutSpecificRateLimiter,
   resendVerificationLimiter,
+  changePasswordLimiter,
 };

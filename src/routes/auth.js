@@ -7,6 +7,7 @@ const {
   loginValidation,
   tokenValidation,
   postValidation,
+  changePasswordValidation,
 } = require("../utils/validation");
 const { sanitizeFields } = require("../utils/sanitization");
 const { authenticateToken } = require("../middleware/auth");
@@ -29,7 +30,8 @@ const {
   sessionsRateLimiter,
   logoutAllRateLimiter,
   logoutSpecificRateLimiter,
-  resendVerificationLimiter
+  resendVerificationLimiter,
+  changePasswordLimiter,
 } = require("../middleware/ratelimiter");
 const {
   createEmailToken,
@@ -121,52 +123,56 @@ router.get("/verify-email", verifyEmailToken, async (req, res) => {
   }
 });
 
-router.post("/resend-verification-email", resendVerificationLimiter, async (req, res) => {
-  const email = req.body.email;
-  try {
-    const user = await prisma.user.findUnique({
-      where: {
-        email: email,
-      },
-    });
+router.post(
+  "/resend-verification-email",
+  resendVerificationLimiter,
+  async (req, res) => {
+    const email = req.body.email;
+    try {
+      const user = await prisma.user.findUnique({
+        where: {
+          email: email,
+        },
+      });
 
-    if (!user) {
-      return res.status(404).json({
-        message: "User not found",
+      if (!user) {
+        return res.status(404).json({
+          message: "User not found",
+        });
+      }
+
+      if (user.emailVerified) {
+        return res.status(400).json({
+          message: "Email already verified",
+        });
+      }
+
+      await prisma.emailVerificationToken.deleteMany({
+        where: { userId: user.id },
+      });
+
+      const emailToken = await createEmailToken(user.id);
+      const verificationlink = `http://localhost:3000/api/auth/verify-email?token=${emailToken}`;
+      const html = verificationEmailTemplate(verificationlink);
+
+      await sendEmail({
+        to: email,
+        subject: "Verify your email",
+        html: html,
+      });
+
+      res.status(200).json({
+        message: "Verification email resent successfully",
+        verificationlink: verificationlink,
+      });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({
+        error: "Server error",
       });
     }
-
-    if (user.emailVerified) {
-      return res.status(400).json({
-        message: "Email already verified",
-      });
-    }
-
-    await prisma.emailVerificationToken.deleteMany({
-      where: { userId: user.id },
-    });
-
-    const emailToken = await createEmailToken(user.id);
-    const verificationlink = `http://localhost:3000/api/auth/verify-email?token=${emailToken}`;
-    const html = verificationEmailTemplate(verificationlink);
-
-    await sendEmail({
-      to: email,
-      subject: "Verify your email",
-      html: html,
-    });
-
-    res.status(200).json({
-      message: "Verification email resent successfully",
-      verificationlink: verificationlink,
-    });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({
-      error: "Server error",
-    });
   }
-});
+);
 
 router.post(
   "/post",
@@ -194,6 +200,51 @@ router.post(
     } catch (err) {
       res.status(500).json({
         error: "Failed to create post",
+      });
+    }
+  }
+);
+
+router.post(
+  "/change-password",
+  authenticateToken,
+  changePasswordLimiter,
+  changePasswordValidation,
+  async (req, res) => {
+    try {
+      const { currentpassword, newpassword } = req.body;
+      const userId = req.user.sub;
+
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+      });
+
+      const password = user.password;
+      const doesPasswordMatch = await bcrypt.compare(currentpassword, password);
+
+      if (!doesPasswordMatch) {
+        return res.status(401).json({
+          message: "Password is incorrect",
+        });
+      }
+
+      const hashedNewPassword = await bcrypt.hash(newpassword, 10);
+
+      await prisma.user.update({
+        where: {id: userId},
+        data: {
+          password: hashedNewPassword,
+        },
+      });
+
+      res.status(200).json({
+        message: "Password changed successfully",
+      });
+
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({
+        error: "Server error",
       });
     }
   }

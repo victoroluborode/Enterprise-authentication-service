@@ -70,4 +70,17 @@ const tokenValidation = [
   }
 ]
 
-module.exports = { tokenValidation, registerValidation, loginValidation, postValidation };
+
+const changePasswordValidation = [
+  body("currentpassword")
+    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/)
+    .withMessage(
+      "Password must be at least 8 characters and include uppercase, lowercase, number, and special character"
+    ),
+  body("newpassword")
+    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/)
+    .withMessage(
+      "Password must be at least 8 characters and include uppercase, lowercase, number, and special character"
+    ),
+];
+module.exports = { tokenValidation, registerValidation, loginValidation, postValidation, changePasswordValidation};
