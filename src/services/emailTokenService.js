@@ -34,7 +34,7 @@ const verifyEmailToken = async (req, res, next) => {
         },
       },
     });
-    
+
     const emailTokens = await prisma.emailVerificationToken.findMany({
       where: {
         expiresAt: {
@@ -85,8 +85,6 @@ const verifyEmailToken = async (req, res, next) => {
     res.status(200).json({
       message: "Email verified successful",
     });
-
-    
   } catch (err) {
     res.status(500).json({
       error: "Server error",
@@ -94,4 +92,31 @@ const verifyEmailToken = async (req, res, next) => {
   }
 };
 
-module.exports = { createEmailToken, verifyEmailToken };
+const requireEmailVerification = async (req, res, next) => {
+  const userId = req.user.sub;
+
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    if (!user.emailVerified) {
+      res.status(400).json({
+        message: "Email is not verified",
+      });
+    }
+
+    next();
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      error: "Server error",
+    });
+  }
+};
+
+module.exports = { createEmailToken, verifyEmailToken, requireEmailVerification };

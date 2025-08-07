@@ -34,6 +34,7 @@ const {
 const {
   createEmailToken,
   verifyEmailToken,
+  requireEmailVerification,
 } = require("../services/emailTokenService");
 const verificationEmailTemplate = require("../utils/template");
 
@@ -170,6 +171,7 @@ router.post("/resend-verification-email", resendVerificationLimiter, async (req,
 router.post(
   "/post",
   authenticateToken,
+  requireEmailVerification,
   createPostRateLimiter,
   postValidation,
   sanitizeFields(["title", "content"]),
