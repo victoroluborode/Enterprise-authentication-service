@@ -2,8 +2,10 @@ const bcrypt = require("bcrypt");
 const crypto = require("crypto");
 const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
+const {v4: uuidv4} = require('uuid')
 
 const createEmailToken = async (userId) => {
+  const tokenId = uuidv4();
   const token = crypto.randomBytes(32).toString("hex");
   const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
   const hashedToken = await bcrypt.hash(token, 10);
@@ -11,6 +13,7 @@ const createEmailToken = async (userId) => {
   await prisma.emailVerificationToken.create({
     data: {
       userId: userId,
+      tokenId: tokenId,
       token: hashedToken,
       expiresAt: expiresAt,
     },
@@ -20,13 +23,8 @@ const createEmailToken = async (userId) => {
 
 const verifyEmailToken = async (req, res, next) => {
   try {
-    const token = req.query.token;
-    if (!token) {
-      return res.status(401).json({
-        message: "Token required",
-      });
-    }
-
+    const {tokenId, token} = req.query;
+    
     await prisma.emailVerificationToken.deleteMany({
       where: {
         expiresAt: {
@@ -35,32 +33,27 @@ const verifyEmailToken = async (req, res, next) => {
       },
     });
 
-    const emailTokens = await prisma.emailVerificationToken.findMany({
+    const emailToken = await prisma.emailVerificationToken.findUnique({
       where: {
-        expiresAt: {
-          gt: new Date(),
-        },
+        tokenId: tokenId
       },
     });
 
-    let matchedToken;
-
-    for (let dbToken of emailTokens) {
-      const match = await bcrypt.compare(token, dbToken.token);
-      if (match) {
-        matchedToken = dbToken;
-        break;
-      }
+    if (!emailToken || emailToken.expiresAt < new Date()) {
+      return res.status(401).json({
+        message: "Invalid or expired token",
+      });
     }
 
-    if (!matchedToken) {
+    const isTokenValid = await bcrypt.compare(token, emailToken.token);
+    if (!isTokenValid) {
       return res.status(401).json({
         message: "Invalid token",
       });
     }
 
     const user = await prisma.user.findUnique({
-      where: { id: matchedToken.userId },
+      where: { id: emailToken.userId },
     });
 
     if (user.emailVerified) {
@@ -69,7 +62,7 @@ const verifyEmailToken = async (req, res, next) => {
 
     await prisma.user.update({
       where: {
-        id: matchedToken.userId,
+        id: emailToken.userId,
       },
       data: {
         emailVerified: true,
@@ -78,7 +71,7 @@ const verifyEmailToken = async (req, res, next) => {
 
     await prisma.emailVerificationToken.delete({
       where: {
-        id: matchedToken.id,
+        id: emailToken.id,
       },
     });
 
