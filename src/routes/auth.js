@@ -1,6 +1,8 @@
 require("dotenv").config();
 const express = require("express");
 const router = express.Router();
+const crypto = require('crypto');
+const { v4: uuidv4 } = require("uuid");
 const registerUser = require("../services/userService");
 const {
   registerValidation,
@@ -41,7 +43,8 @@ const {
   verifyEmailToken,
   requireEmailVerification,
 } = require("../services/emailTokenService");
-const verificationEmailTemplate = require("../utils/template");
+const { verificationEmailTemplate, resetPasswordEmailTemplate } = require("../utils/template");
+const { sendEmail } = require("../utils/emailservice");
 
 router.post(
   "/register",
@@ -276,6 +279,7 @@ router.post(
         where: { userId },
       });
 
+      const tokenId = uuidv4();
       const rawtoken = crypto.randomBytes(32).toString("hex");
       const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
       const passwordResetToken = await bcrypt.hash(rawtoken, 10);
@@ -283,7 +287,7 @@ router.post(
       await prisma.passwordResetToken.create({
         data: {
           userId: userId,
-          tokenId: rawtoken,
+          tokenId: tokenId,
           token: passwordResetToken,
           expiresAt: expiresAt,
         },
@@ -357,6 +361,11 @@ router.post("/reset-password", resetPasswordValidation, async (req, res) => {
       where: {
         userId: userId,
       },
+    });
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: { tokenVersion: { increment: 1 } },
     });
 
     await prisma.passwordResetToken.delete({ where: { tokenId: tokenId } });

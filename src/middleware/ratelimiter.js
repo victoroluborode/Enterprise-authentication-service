@@ -160,7 +160,7 @@ const changePasswordLimiter = createLimiter({
 
 const forgotPasswordLimiter = createLimiter({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 3,
+  max: 10,
   message:
     "Too many password reset requests. Please try again after 15 minutes.",
   type: "User-based",
