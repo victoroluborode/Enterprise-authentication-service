@@ -46,6 +46,7 @@ model PasswordResetToken {
   id Int @default(autoincrement())
   userId Int
   user user @relation(fields: [userId], references: [id])
+  tokenId String @unique
   token String @unique
   expiresAt DateTime
   createdAt DateTime @default(now())

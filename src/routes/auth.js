@@ -9,6 +9,7 @@ const {
   postValidation,
   changePasswordValidation,
   forgotPasswordValidation,
+  resetPasswordValidation,
 } = require("../utils/validation");
 const { sanitizeFields } = require("../utils/sanitization");
 const { authenticateToken } = require("../middleware/auth");
@@ -251,53 +252,118 @@ router.post(
   }
 );
 
-router.post("/forgot-password", forgotPasswordLimiter, forgotPasswordValidation, async (req, res) => {
-  const { email } = req.body;
-  try {
-    const user = await prisma.user.findUnique({
-      where: { email: email },
-    });
+router.post(
+  "/forgot-password",
+  forgotPasswordLimiter,
+  forgotPasswordValidation,
+  async (req, res) => {
+    const { email } = req.body;
+    try {
+      const user = await prisma.user.findUnique({
+        where: { email: email },
+      });
 
-    if (!user) {
-      return res.status(200).json({
+      if (!user) {
+        return res.status(200).json({
+          message:
+            "If that email is associated with an account, you’ll receive a reset link shortly.",
+        });
+      }
+
+      const userId = user.id;
+
+      await prisma.passwordResetToken.deleteMany({
+        where: { userId },
+      });
+
+      const rawtoken = crypto.randomBytes(32).toString("hex");
+      const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
+      const passwordResetToken = await bcrypt.hash(rawtoken, 10);
+
+      await prisma.passwordResetToken.create({
+        data: {
+          userId: userId,
+          tokenId: rawtoken,
+          token: passwordResetToken,
+          expiresAt: expiresAt,
+        },
+      });
+
+      const resetPasswordLink = `http://localhost:3000/api/auth/reset-password?tokenId=${tokenId}&token=${rawtoken}`;
+      const html = resetPasswordEmailTemplate(resetPasswordLink);
+
+      await sendEmail({
+        to: email,
+        subject: "Reset your password",
+        html: html,
+      });
+
+      res.status(200).json({
         message:
-          "If that email is associated with an account, you’ll receive a reset link shortly.",
+          "If an account with that email exists, a password reset link has been sent.",
+        resetPasswordLink: resetPasswordLink,
+      });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({
+        error: "Server error",
       });
     }
+  }
+);
 
-    const userId = user.id;
+router.post("/reset-password", resetPasswordValidation, async (req, res) => {
+  try {
+    const {tokenId, token} = req.query;
+    const { newpassword } = req.body;
 
     await prisma.passwordResetToken.deleteMany({
-      where: { userId },
-    });
-
-    const token = crypto.randomBytes(32).toString("hex");
-    const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
-    const passwordResetToken = await bcrypt.hash(token, 10);
-
-    await prisma.passwordResetToken.create({
-      data: {
-        userId: userId,
-        token: passwordResetToken,
-        expiresAt: expiresAt,
+      where: {
+        expiresAt: {
+          lt: new Date(),
+        },
       },
     });
 
-    const resetPasswordLink = `http://localhost:3000/api/auth/reset-password?token=${token}`;
-    const html = resetPasswordEmailTemplate(resetPasswordLink);
+    const passwordToken = await prisma.passwordResetToken.findUnique({
+      where: {
+        tokenId: tokenId
+      }
+    })
 
-    await sendEmail({
-      to: email,
-      subject: "Reset your password",
-      html: html,
+
+    if (!passwordToken || passwordToken.expiresAt < new Date()) {
+      return res.status(401).json({
+        message: "Invalid token",
+      });
+    }
+
+    const isTokenValid = await bcrypt.compare(token, passwordToken.token);
+    if (!isTokenValid) {
+      return res.status(401).json({ message: "Invalid token" });
+    }
+
+    const userId = passwordToken.userId;
+    const hashedNewPassword = await bcrypt.hash(newpassword, 10);
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        password: hashedNewPassword,
+      },
     });
+
+    await prisma.refreshToken.deleteMany({
+      where: {
+        userId: userId,
+      },
+    });
+
+    await prisma.passwordResetToken.delete({ where: { tokenId: tokenId } });
 
     res.status(200).json({
-      message:
-        "If an account with that email exists, a password reset link has been sent.",
-      resetPasswordLink: resetPasswordLink,
-    });
-
+message: "Password reset successful"
+    })
   } catch (err) {
     console.error(err);
     res.status(500).json({

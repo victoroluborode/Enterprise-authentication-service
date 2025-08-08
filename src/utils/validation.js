@@ -105,6 +105,23 @@ const forgotPasswordValidation = [
     }
     next();
   }
-  
-]
-module.exports = { tokenValidation, registerValidation, loginValidation, postValidation, changePasswordValidation, forgotPasswordValidation};
+];
+
+const resetPasswordValidation = [
+  body("newpassword")
+    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/)
+    .withMessage(
+      "Password must be at least 8 characters and include uppercase, lowercase, number, and special character"
+    ),
+
+  (req, res, next) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(401).json({
+        message: errors.array(),
+      });
+    }
+    next();
+  },
+];
+module.exports = { tokenValidation, registerValidation, loginValidation, postValidation, changePasswordValidation, forgotPasswordValidation, resetPasswordValidation};
