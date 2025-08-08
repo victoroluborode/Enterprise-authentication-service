@@ -3,6 +3,7 @@ const app = express();
 require('dotenv').config();
 const Routes = require("./routes/auth");
 const TestEmailRoute = require("./routes/test-email");
+const AdminRoutes = require("./routes/admin");
 const cors = require('cors');
 const helmet = require('helmet');
 const { globalRateLimiter } = require("../src/middleware/ratelimiter");
@@ -24,7 +25,8 @@ app.use(
 
 app.use(globalRateLimiter);
 app.use("/api/auth/", Routes);
-app.use("/api/auth",TestEmailRoute);
+app.use("/api/auth", TestEmailRoute);
+app.use("api/auth", AdminRoutes);
 
 
 

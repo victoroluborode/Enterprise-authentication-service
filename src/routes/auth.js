@@ -45,6 +45,8 @@ const {
 } = require("../services/emailTokenService");
 const { verificationEmailTemplate, resetPasswordEmailTemplate } = require("../utils/template");
 const { sendEmail } = require("../utils/emailservice");
+const { hasPermissions , hasRole} = require("../middleware/rolePermissions");
+
 
 router.post(
   "/register",
@@ -183,6 +185,7 @@ router.post(
 router.post(
   "/post",
   authenticateToken,
+  hasPermissions('post:create'),
   requireEmailVerification,
   createPostRateLimiter,
   postValidation,
@@ -450,6 +453,21 @@ router.post(
     try {
       const user = await prisma.user.findUnique({
         where: { email: email },
+        include: {
+          roles: {
+            include: {
+              role: {
+                include: {
+                  rolepermissions: {
+                    include: {
+                      permission: true
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
       });
       if (!user) {
         return res.status(401).json({
