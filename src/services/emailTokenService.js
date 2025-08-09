@@ -18,7 +18,7 @@ const createEmailToken = async (userId) => {
       expiresAt: expiresAt,
     },
   });
-  return token;
+  return {token, tokenId};
 };
 
 const verifyEmailToken = async (req, res, next) => {
@@ -79,6 +79,7 @@ const verifyEmailToken = async (req, res, next) => {
       message: "Email verified successful",
     });
   } catch (err) {
+    console.error(err);
     res.status(500).json({
       error: "Server error",
     });

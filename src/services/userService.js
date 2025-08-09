@@ -42,14 +42,24 @@ async function registerUser(email, password, fullname) {
       include: {
         roles: {
           include: {
-            role: true,
+            role: {
+              include: {
+                permissions: {
+                  include: {
+                    permission: {
+                      select: { name: true },
+                    },
+                  },
+                },
+              },
+            },
           },
         },
       },
     });
 
-    const emailToken = await createEmailToken(newUser.id);
-    const verificationlink = `http://localhost:3000/api/auth/verify-email?token=${emailToken}`;
+    const {token, tokenId} = await createEmailToken(newUser.id);
+    const verificationlink = `http://localhost:3000/api/auth/verify-email?token=${token}&tokenId=${tokenId}`;
     const html = verificationEmailTemplate(verificationlink);
 
     await sendEmail({
@@ -59,7 +69,7 @@ async function registerUser(email, password, fullname) {
     });
 
     console.log("User created", userWithRoles);
-      return { userWithRoles, verificationlink };
+    return { userWithRoles, verificationlink };
   } catch (err) {
     console.log("Registration failed:", err);
   }

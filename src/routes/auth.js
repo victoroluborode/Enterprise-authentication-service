@@ -125,6 +125,7 @@ router.get("/verify-email", verifyEmailToken, async (req, res) => {
       message: "Email successfully verified ✅",
     });
   } catch (err) {
+    console.error(err);
     return res.status(500).json({
       error: "Server error",
     });
@@ -159,8 +160,8 @@ router.post(
         where: { userId: user.id },
       });
 
-      const emailToken = await createEmailToken(user.id);
-      const verificationlink = `http://localhost:3000/api/auth/verify-email?token=${emailToken}`;
+      const {token, tokenId} = await createEmailToken(user.id);
+      const verificationlink = `http://localhost:3000/api/auth/verify-email?token=${token}&tokenId=${tokenId}`;
       const html = verificationEmailTemplate(verificationlink);
 
       await sendEmail({
@@ -458,7 +459,7 @@ router.post(
             include: {
               role: {
                 include: {
-                  rolepermissions: {
+                  permissions: {
                     include: {
                       permission: true
                     }

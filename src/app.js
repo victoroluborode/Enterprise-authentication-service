@@ -25,8 +25,8 @@ app.use(
 
 app.use(globalRateLimiter);
 app.use("/api/auth/", Routes);
-app.use("/api/auth", TestEmailRoute);
-app.use("api/auth", AdminRoutes);
+app.use("/api/auth/", TestEmailRoute);
+app.use("/api/auth/", AdminRoutes);
 
 
 

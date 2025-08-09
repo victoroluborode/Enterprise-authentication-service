@@ -11,7 +11,7 @@ const createAccessToken = async (user) => {
     ? user.roles.map((userRole) => userRole.role.name)
     : [];
   const permissions = user.roles ? user.roles.flatMap(userRole =>
-    userRole.role.rolepermissions.map(rp => rp.permission.name)
+    userRole.role.permissions.map(rp => rp.permission.name)
   ) : [];
   const payload = {
     sub: user.id,
