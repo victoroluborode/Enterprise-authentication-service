@@ -1,7 +1,7 @@
 require("dotenv").config();
 const express = require("express");
 const router = express.Router();
-const crypto = require('crypto');
+const crypto = require("crypto");
 const { v4: uuidv4 } = require("uuid");
 const registerUser = require("../services/userService");
 const {
@@ -43,10 +43,12 @@ const {
   verifyEmailToken,
   requireEmailVerification,
 } = require("../services/emailTokenService");
-const { verificationEmailTemplate, resetPasswordEmailTemplate } = require("../utils/template");
+const {
+  verificationEmailTemplate,
+  resetPasswordEmailTemplate,
+} = require("../utils/template");
 const { sendEmail } = require("../utils/emailservice");
-const { hasPermissions , hasRole} = require("../middleware/rolePermissions");
-
+const { hasPermissions, hasRole } = require("../middleware/rolePermissions");
 
 router.post(
   "/register",
@@ -160,7 +162,7 @@ router.post(
         where: { userId: user.id },
       });
 
-      const {token, tokenId} = await createEmailToken(user.id);
+      const { token, tokenId } = await createEmailToken(user.id);
       const verificationlink = `http://localhost:3000/api/auth/verify-email?token=${token}&tokenId=${tokenId}`;
       const html = verificationEmailTemplate(verificationlink);
 
@@ -186,7 +188,7 @@ router.post(
 router.post(
   "/post",
   authenticateToken,
-  hasPermissions('post:create'),
+  hasPermissions("post:create"),
   requireEmailVerification,
   createPostRateLimiter,
   postValidation,
@@ -322,7 +324,7 @@ router.post(
 
 router.post("/reset-password", resetPasswordValidation, async (req, res) => {
   try {
-    const {tokenId, token} = req.query;
+    const { tokenId, token } = req.query;
     const { newpassword } = req.body;
 
     await prisma.passwordResetToken.deleteMany({
@@ -335,10 +337,9 @@ router.post("/reset-password", resetPasswordValidation, async (req, res) => {
 
     const passwordToken = await prisma.passwordResetToken.findUnique({
       where: {
-        tokenId: tokenId
-      }
-    })
-
+        tokenId: tokenId,
+      },
+    });
 
     if (!passwordToken || passwordToken.expiresAt < new Date()) {
       return res.status(401).json({
@@ -375,13 +376,13 @@ router.post("/reset-password", resetPasswordValidation, async (req, res) => {
     await prisma.passwordResetToken.delete({ where: { tokenId: tokenId } });
 
     res.status(200).json({
-message: "Password reset successful"
-    })
+      message: "Password reset successful",
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({
-      error: "Server error"
-    })
+      error: "Server error",
+    });
   }
 });
 
@@ -461,14 +462,14 @@ router.post(
                 include: {
                   permissions: {
                     include: {
-                      permission: true
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
+                      permission: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
       });
       if (!user) {
         return res.status(401).json({
@@ -483,6 +484,11 @@ router.post(
           message: "Invalid email or password",
         });
       }
+
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { tokenVersion: { increment: 1 } },
+      });
 
       const accesstoken = await createAccessToken(user);
       const refreshtoken = await createRefreshToken(
@@ -529,7 +535,26 @@ router.post(
     const ipAddress = req.ip;
     const userAgent = req.headers["user-agent"];
     try {
-      const accesstoken = await createAccessToken(req.user);
+      const userWithRoles = await prisma.user.findUnique({
+        where: { id: userId },
+        include: {
+          roles: {
+            include: {
+              role: {
+                include: {
+                  permissions: {
+                    include: {
+                      permission: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      });
+
+      const accesstoken = await createAccessToken(userWithRoles);
       const refreshtoken = await createRefreshToken(
         req.user,
         deviceId,

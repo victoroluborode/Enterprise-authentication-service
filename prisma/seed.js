@@ -71,9 +71,9 @@ async function main() {
       permissionId: p.id,
     }));
 
-  // USER gets only read permissions
+  // USER gets read and create permissions
   const userPermissions = createdPermissions
-    .filter((p) => p.name.includes("post:read"))
+    .filter((p) => p.name === "post:read" || p.name === "post:create")
     .map((p) => ({
       roleId: userRole.id,
       permissionId: p.id,

@@ -52,7 +52,7 @@ const globalRateLimiter = createLimiter({
 
 const loginRateLimiter = createLimiter({
   windowMs: 5 * 60 * 1000,
-  max: 5,
+  max: 20,
   message:
     "Too many login attempts from this IP, please try again after 5 minutes.",
   type: "IP-based",
