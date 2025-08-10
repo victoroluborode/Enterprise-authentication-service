@@ -33,10 +33,24 @@ const hasRole = (allowedRoles) => {
 };
 
 const hasPermissions = (requiredPermission) => {
+  const permissionsArray = Array.isArray(requiredPermission)
+    ? requiredPermission
+    : [requiredPermission];
   return async (req, res, next) => {
     try {
       const userPermissions = req.user.permissions;
-      if (userPermissions && userPermissions.includes(requiredPermission)) {
+
+      if (!userPermissions) {
+        return res.status(403).json({
+          message: "Forbidden: No permissions found the user",
+        });
+      }
+
+      const hasRequiredPermissions = permissionsArray.some((permission) =>
+        userPermissions.includes(permission)
+      );
+
+      if (hasRequiredPermissions) {
         next();
       } else {
         res.status(403).json({
