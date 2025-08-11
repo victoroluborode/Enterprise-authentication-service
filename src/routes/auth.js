@@ -188,7 +188,7 @@ router.post(
 router.post(
   "/post",
   authenticateToken,
-  hasPermissions("post:create"),
+  hasPermissions(["post:create"]),
   requireEmailVerification,
   createPostRateLimiter,
   postValidation,
@@ -216,6 +216,8 @@ router.post(
     }
   }
 );
+
+router.get("/posts")
 
 router.post(
   "/change-password",
@@ -386,11 +388,17 @@ router.post("/reset-password", resetPasswordValidation, async (req, res) => {
   }
 });
 
-router.get("/posts", authenticateToken, postsRateLimiter, async (req, res) => {
-  const userId = req.user.sub;
+router.get("/posts", authenticateToken, hasPermissions(["post: read"]), postsRateLimiter, async (req, res) => { 
   try {
     const posts = await prisma.post.findMany({
-      where: { userId: userId },
+      include: {
+        user: {
+          select: {
+            fullname: true,
+            email: true,
+          }
+        }
+      }
     });
     res.status(200).json({
       message: "Access Granted",
