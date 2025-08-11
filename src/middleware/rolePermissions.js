@@ -32,33 +32,50 @@ const hasRole = (allowedRoles) => {
   };
 };
 
-const hasPermissions = (requiredPermission) => {
-  const permissionsArray = Array.isArray(requiredPermission)
-    ? requiredPermission
-    : [requiredPermission];
+const hasPermissions = (requiredPermissions) => {
   return async (req, res, next) => {
     try {
-      const userPermissions = req.user.permissions;
+      const user = req.user;
 
-      if (!userPermissions) {
-        return res.status(403).json({
-          message: "Forbidden: No permissions found the user",
+      if (!user) {
+        return res.status(401).json({
+          error: "Authentication required",
         });
       }
 
-      const hasRequiredPermissions = permissionsArray.some((permission) =>
-        userPermissions.includes(permission)
+      const userPermissions = user.roles.flatMap((userRole) =>
+        userRole.role.permissions.map((p) => p.permission.name)
       );
 
-      if (hasRequiredPermissions) {
-        next();
-      } else {
-        res.status(403).json({
-          message: "Forbidden: You do not have the necessary permissions.",
-        });
+      for (const requiredPermission of requiredPermissions) {
+        if (userPermissions.includes(requiredPermission)) {
+          return next();
+        }
+
+        const [resource, action] = requiredPermission.split(":");
+        if (action && action.endsWith("_own")) {
+          const postId = req.params.postId || req.body.postId;
+          if (!postId) {
+            continue;
+          }
+
+          const post = await prisma.post.findUnique({
+            where: { id: postId },
+            select: { userId: true },
+          });
+
+          if (post && post.userId === user.id) {
+            return next();
+          }
+        }
       }
+
+      return res.status(403).json({
+        error: "Forbidden: You do not have the required permissions.",
+      });
     } catch (err) {
-      res.status(500).json({
+      console.log("Permission check error:", err);
+      return res.status(500).json({
         message: "Server error",
       });
     }
