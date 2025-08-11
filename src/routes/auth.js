@@ -217,8 +217,6 @@ router.post(
   }
 );
 
-
-
 router.post(
   "/change-password",
   authenticateToken,
@@ -433,8 +431,8 @@ router.put(
 
     if (!existingPost) {
       return res.status(404).json({
-        error: "Post not found."
-      })
+        error: "Post not found.",
+      });
     }
 
     try {
@@ -442,15 +440,42 @@ router.put(
         where: { id: parseInt(postId) },
         data: {
           title: title || existingPost.title,
-          content: content || existingPost.content
+          content: content || existingPost.content,
         },
       });
       res.status(200).json(updatedPost);
     } catch (err) {
-      console.error('Update post error:', err);
+      console.error("Update post error:", err);
       res.status(500).json({
-        error: "Failed to update post"
-      })
+        error: "Failed to update post",
+      });
+    }
+  }
+);
+
+router.delete(
+  "/posts:postId",
+  authenticateToken,
+  hasPermissions(["post:delete_own", "post:delete"]),
+  async (req, res) => {
+    const { postId } = req.params;
+
+    const existingPost = await prisma.post.findUnique({
+      where: { id: parseInt(postId) },
+    });
+
+    if (!existingPost) {
+      return res.status(404).json({ error: "Post not found." });
+    }
+
+    try {
+      await prisma.post.delete({
+        where: { id: parseInt(postId) },
+      });
+      res.status(200).json({ message: "Post deleted successfully." });
+    } catch (err) {
+      console.error("Delete post error:", err);
+      res.status(500).json({ error: "Failed to delete post." });
     }
   }
 );
