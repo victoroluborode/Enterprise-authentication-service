@@ -217,7 +217,7 @@ router.post(
   }
 );
 
-router.get("/posts")
+
 
 router.post(
   "/change-password",
@@ -388,30 +388,72 @@ router.post("/reset-password", resetPasswordValidation, async (req, res) => {
   }
 });
 
-router.get("/posts", authenticateToken, hasPermissions(["post: read"]), postsRateLimiter, async (req, res) => { 
-  try {
-    const posts = await prisma.post.findMany({
-      include: {
-        user: {
-          select: {
-            fullname: true,
-            email: true,
-          }
-        }
-      }
-    });
-    res.status(200).json({
-      message: "Access Granted",
-      posts: posts,
-    });
-  } catch (err) {
-    console.error("error:", err);
-    res.status(500).json({
-      error: "server error",
-      message: "An unexpected error occurred while getting posts",
-    });
+router.get(
+  "/posts",
+  authenticateToken,
+  hasPermissions(["post: read"]),
+  postsRateLimiter,
+  async (req, res) => {
+    try {
+      const posts = await prisma.post.findMany({
+        include: {
+          user: {
+            select: {
+              fullname: true,
+              email: true,
+            },
+          },
+        },
+      });
+      res.status(200).json({
+        message: "Access Granted",
+        posts: posts,
+      });
+    } catch (err) {
+      console.error("error:", err);
+      res.status(500).json({
+        error: "server error",
+        message: "An unexpected error occurred while getting posts",
+      });
+    }
   }
-});
+);
+
+router.put(
+  "posts/:postId",
+  authenticateToken,
+  hasPermissions(["post:update_own", "post:update"]),
+  async (req, res) => {
+    const { postId } = req.params;
+    const { title, content } = req.body;
+
+    const existingPost = await prisma.post.findUnique({
+      where: { id: parseInt(postId) },
+    });
+
+    if (!existingPost) {
+      return res.status(404).json({
+        error: "Post not found."
+      })
+    }
+
+    try {
+      const updatedPost = await prisma.post.update({
+        where: { id: parseInt(postId) },
+        data: {
+          title: title || existingPost.title,
+          content: content || existingPost.content
+        },
+      });
+      res.status(200).json(updatedPost);
+    } catch (err) {
+      console.error('Update post error:', err);
+      res.status(500).json({
+        error: "Failed to update post"
+      })
+    }
+  }
+);
 
 router.get(
   "/sessions",
