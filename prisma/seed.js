@@ -21,6 +21,11 @@ async function main() {
     update: {},
     create: { name: "EDITOR" },
   });
+  const moderatorRole = await prisma.role.upsert({
+    where: { name: "MODERATOR" },
+    update: {},
+    create: { name: "MODERATOR" },
+  });
   console.log("Roles seeded successfully.");
 
   // --- 2. Create Permissions ---
@@ -41,6 +46,9 @@ async function main() {
     { name: "post:read", description: "Read any post" },
     { name: "post:update", description: "Update any post" },
     { name: "post:delete", description: "Delete any post" },
+    // --- NEW GRANULAR PERMISSIONS FOR DAY 21 ---
+    { name: "post:update_own", description: "Update only own posts" },
+    { name: "post:delete_own", description: "Delete only own posts" },
   ];
 
   // We use Promise.all to create all permissions in parallel for better performance
@@ -63,30 +71,55 @@ async function main() {
     permissionId: p.id,
   }));
 
-  // EDITOR gets post-related permissions and the ability to list things
+  // MODERATOR gets all `post` permissions, including the ability to update/delete any post.
+  const moderatorPermissions = createdPermissions
+    .filter((p) => p.name.startsWith("post"))
+    .map((p) => ({
+      roleId: moderatorRole.id,
+      permissionId: p.id,
+    }));
+
+  // EDITOR gets all permissions an editor would need (post creation, updates, and general lists)
   const editorPermissions = createdPermissions
-    .filter((p) => p.name.includes("post") || p.name.includes("list"))
+    .filter(
+      (p) =>
+        p.name.includes("post:create") ||
+        p.name.includes("post:read") ||
+        p.name.includes("post:update_own") ||
+        p.name.includes("post:delete_own") ||
+        p.name.includes("list")
+    )
     .map((p) => ({
       roleId: editorRole.id,
       permissionId: p.id,
     }));
 
-  // USER gets read and create permissions
+  // USER gets basic permissions to read, create, and manage their own posts
   const userPermissions = createdPermissions
-    .filter((p) => p.name === "post:read" || p.name === "post:create")
+    .filter(
+      (p) =>
+        p.name === "post:read" ||
+        p.name === "post:create" ||
+        p.name === "post:update_own" ||
+        p.name === "post:delete_own"
+    )
     .map((p) => ({
       roleId: userRole.id,
       permissionId: p.id,
     }));
 
   await prisma.rolePermission.createMany({
-    data: [...adminPermissions, ...editorPermissions, ...userPermissions],
+    data: [
+      ...adminPermissions,
+      ...moderatorPermissions,
+      ...editorPermissions,
+      ...userPermissions,
+    ],
     skipDuplicates: true,
   });
   console.log("Role-Permission relationships seeded successfully.");
 
   // --- 4. Assign ADMIN role to a test user ---
-  // Replace the email below with an email from a user that already exists in your database
   const testUser = await prisma.user.findUnique({
     where: { email: "collins110@gmail.com" },
   });
