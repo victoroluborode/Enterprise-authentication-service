@@ -87,7 +87,7 @@ const verifyEmailToken = async (req, res, next) => {
 };
 
 const requireEmailVerification = async (req, res, next) => {
-  const userId = req.user.sub;
+  const userId = req.user.id;
 
   try {
     const user = await prisma.user.findUnique({

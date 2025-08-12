@@ -124,7 +124,7 @@ router.post(
 router.get("/verify-email", verifyEmailToken, async (req, res) => {
   try {
     return res.status(200).json({
-      message: "Email successfully verified ✅",
+      message: "Email successfully verified ",
     });
   } catch (err) {
     console.error(err);
@@ -195,7 +195,7 @@ router.post(
   sanitizeFields(["title", "content"]),
   async (req, res) => {
     const { title, content } = req.body;
-    const userId = req.user.sub;
+    const userId = req.user.id;
     try {
       const newPost = await prisma.post.create({
         data: {
@@ -210,6 +210,7 @@ router.post(
         post: newPost,
       });
     } catch (err) {
+      console.error("Create post error:", err);
       res.status(500).json({
         error: "Failed to create post",
       });
@@ -225,7 +226,7 @@ router.post(
   async (req, res) => {
     try {
       const { currentpassword, newpassword } = req.body;
-      const userId = req.user.sub;
+      const userId = req.user.id;
 
       const user = await prisma.user.findUnique({
         where: { id: userId },
@@ -307,6 +308,7 @@ router.post(
         subject: "Reset your password",
         html: html,
       });
+      console.log(resetPasswordLink);
 
       res.status(200).json({
         message:
@@ -389,7 +391,7 @@ router.post("/reset-password", resetPasswordValidation, async (req, res) => {
 router.get(
   "/posts",
   authenticateToken,
-  hasPermissions(["post: read"]),
+  hasPermissions(["post:read"]),
   postsRateLimiter,
   async (req, res) => {
     try {
@@ -418,7 +420,7 @@ router.get(
 );
 
 router.put(
-  "posts/:postId",
+  "/posts/:postId",
   authenticateToken,
   hasPermissions(["post:update_own", "post:update"]),
   async (req, res) => {
@@ -454,7 +456,7 @@ router.put(
 );
 
 router.delete(
-  "/posts:postId",
+  "/posts/:postId",
   authenticateToken,
   hasPermissions(["post:delete_own", "post:delete"]),
   async (req, res) => {
@@ -559,11 +561,6 @@ router.post(
           message: "Invalid email or password",
         });
       }
-
-      await prisma.user.update({
-        where: { id: user.id },
-        data: { tokenVersion: { increment: 1 } },
-      });
 
       const accesstoken = await createAccessToken(user);
       const refreshtoken = await createRefreshToken(

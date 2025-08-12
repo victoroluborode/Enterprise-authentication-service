@@ -21,8 +21,22 @@ const authenticateToken = async (req, res, next) => {
         const tokenVer = decoded.tokenVersion;
       const user = await prisma.user.findUnique({
         where: { id: decoded.sub },
-        select: {tokenVersion: true},
-      })
+        include: {
+          roles: {
+            include: {
+              role: {
+                include: {
+                  permissions: {
+                    include: {
+                      permission: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      });
       if (!user || user.tokenVersion !== tokenVer) {
         console.warn(
           `Token version mismatch for user ${
@@ -36,7 +50,7 @@ const authenticateToken = async (req, res, next) => {
         });
       }
       
-        req.user = decoded;
+        req.user = user;
         next();
     });
 };
