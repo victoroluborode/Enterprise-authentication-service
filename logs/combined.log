@@ -2,3 +2,8 @@
 {"deviceId":"07ab789c-95b6-4c53-8376-38de48a012ee","label":"src/utils/logger.js","level":"info","message":"User logged in successfully","timestamp":"2025-08-13 12:15:23","userId":2}
 {"deviceId":"07ab789c-95b6-4c53-8376-38de48a012ee","label":"src/utils/logger.js","level":"info","message":"User logged in successfully","timestamp":"2025-08-13 12:18:53","userId":2}
 {"label":"src/utils/logger.js","level":"info","message":"Post created successfully","postId":6,"timestamp":"2025-08-13 12:19:56","userId":2}
+{"deviceId":"07ab789c-95b6-4c53-8376-38de48a012ee","email":"bollins110@gmail.com","label":"src/utils/logger.js","level":"warn","message":"Login attempt with invalid password","timestamp":"2025-08-13 12:25:03"}
+{"label":"src/utils/logger.js","level":"error","message":"Invalid email or password","method":"POST","stack":"Error: Invalid email or password\n    at /Users/victoroluborode/Enterprise-authentication-service/src/routes/auth.js:598:21","timestamp":"2025-08-13 12:25:03","url":"/api/auth/login"}
+{"deviceId":"07ab789c-95b6-4c53-8376-38de48a012ee","email":"bollins110@gmail.com","label":"src/utils/logger.js","level":"warn","message":"Login attempt with invalid password","timestamp":"2025-08-13 12:27:19"}
+{"label":"src/utils/logger.js","level":"error","message":"Invalid email or password","method":"POST","stack":"Error: Invalid email or password\n    at /Users/victoroluborode/Enterprise-authentication-service/src/routes/auth.js:598:21","timestamp":"2025-08-13 12:27:19","url":"/api/auth/login"}
+{"deviceId":"07ab789c-95b6-4c53-8376-38de48a012ee","label":"src/utils/logger.js","level":"info","message":"User logged in successfully","timestamp":"2025-08-13 12:28:57","userId":2}

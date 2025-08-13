@@ -17,7 +17,7 @@ const globalErrorHandler = (err, req, res, next) => {
   if (err instanceof AppError) {
     res.status(err.statusCode).json({
       status: err.status,
-      message: message,
+      message: err.message,
     });
   } else {
     res.status(500).json({

@@ -9,6 +9,7 @@ const helmet = require('helmet');
 const { globalRateLimiter } = require("../src/middleware/ratelimiter");
 const redisClient = require("../src/config/redisClient");
 const { globalErrorHandler } = require('./middleware/error-handler');
+const requestLogger = require("../src/middleware/request-logger");
 
 
 
@@ -24,6 +25,7 @@ app.use(
   })
 );
 
+app.use(requestLogger);
 app.use(globalRateLimiter);
 app.use("/api/auth/", Routes);
 app.use("/api/auth/", TestEmailRoute);
