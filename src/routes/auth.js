@@ -50,6 +50,7 @@ const {
 const { sendEmail } = require("../utils/emailservice");
 const { hasPermissions, hasRole } = require("../middleware/rolePermissions");
 const AppError = require("../utils/app-error");
+const logger = require("../utils/logger");
 
 router.post(
   "/register",
@@ -66,9 +67,10 @@ router.post(
         where: { email: email },
       });
 
-      console.log(existingUser);
-
       if (existingUser) {
+        logger.warn("Registration attempt with existing email", {
+          email: email,
+        });
         return next(new AppError("User already exists", 400));
       }
 
@@ -77,7 +79,7 @@ router.post(
         password,
         fullname
       );
-      console.log(verificationlink);
+
       const userRoles = userWithRoles.roles.map(
         (userRole) => userRole.role.name
       );
@@ -91,10 +93,8 @@ router.post(
       );
 
       const decodedPayload = decodeJwt(accessToken);
-      console.log("Decoded JWT Payload:", decodedPayload);
 
       const decodedPayloadRefresh = decodeJwt(refreshToken.token);
-      console.log("Decoded Refresh JWT Payload:", decodedPayloadRefresh);
 
       const userResponse = {
         id: userWithRoles.id,
@@ -111,8 +111,12 @@ router.post(
         user: userResponse,
         roles: userRoles,
       });
+      logger.info("User registered successfully", {
+        userId: userWithRoles.id,
+        email: userWithRoles.email,
+      });
     } catch (err) {
-      console.log("Registration error:", err);
+      logger.error("User registration failed", err);
       next(err);
     }
   }
@@ -120,11 +124,12 @@ router.post(
 
 router.get("/verify-email", verifyEmailToken, async (req, res, next) => {
   try {
-    return res.status(200).json({
+    res.status(200).json({
       message: "Email successfully verified ",
     });
+    logger.info("Email verified successfully", { userId: req.user.id });
   } catch (err) {
-    console.error(err);
+    logger.error("Email verification failed", err);
     next(err);
   }
 });
@@ -142,10 +147,17 @@ router.post(
       });
 
       if (!user) {
+        logger.warn("Resend verification email attempt for non-existent user", {
+          email: email,
+        });
         return next(new AppError("User not found", 404));
       }
 
       if (user.emailVerified) {
+        logger.warn(
+          "Resend verification email attempt for already verified user",
+          { email: email }
+        );
         return next(new AppError("Email already verified", 400));
       }
 
@@ -167,8 +179,12 @@ router.post(
         message: "Verification email resent successfully",
         verificationlink: verificationlink,
       });
+      logger.info("Verification email resent", {
+        userId: user.id,
+        email: email,
+      });
     } catch (err) {
-      console.error(err);
+      logger.error("Resending verification email failed", err);
       next(err);
     }
   }
@@ -198,8 +214,12 @@ router.post(
         message: "Post created successfully",
         post: newPost,
       });
+      logger.info("Post created successfully", {
+        postId: newPost.id,
+        userId: userId,
+      });
     } catch (err) {
-      console.error("Create post error:", err);
+      logger.error("Post creation failed", err);
       next(err);
     }
   }
@@ -223,6 +243,9 @@ router.post(
       const doesPasswordMatch = await bcrypt.compare(currentpassword, password);
 
       if (!doesPasswordMatch) {
+        logger.warn("Change password attempt with incorrect current password", {
+          userId: userId,
+        });
         return next(new AppError("Password is incorrect", 401));
       }
 
@@ -238,8 +261,9 @@ router.post(
       res.status(200).json({
         message: "Password changed successfully",
       });
+      logger.info("Password changed successfully", { userId: userId });
     } catch (err) {
-      console.error(err);
+      logger.error("Change password failed", err);
       next(err);
     }
   }
@@ -257,6 +281,9 @@ router.post(
       });
 
       if (!user) {
+        logger.info("Forgot password request for non-existent email", {
+          email: email,
+        });
         return next(
           new AppError(
             "If that email is associated with an account, you’ll receive a reset link shortly.",
@@ -293,15 +320,15 @@ router.post(
         subject: "Reset your password",
         html: html,
       });
-      console.log(resetPasswordLink);
 
       res.status(200).json({
         message:
           "If an account with that email exists, a password reset link has been sent.",
         resetPasswordLink: resetPasswordLink,
       });
+      logger.info("Password reset link sent", { email: email, userId: userId });
     } catch (err) {
-      console.error(err);
+      logger.error("Forgot password process failed", err);
       next(err);
     }
   }
@@ -330,11 +357,18 @@ router.post(
       });
 
       if (!passwordToken || passwordToken.expiresAt < new Date()) {
+        logger.warn(
+          "Attempt to use an invalid or expired password reset token",
+          { tokenId: tokenId }
+        );
         return next(new AppError("Invalid or expired token", 401));
       }
 
       const isTokenValid = await bcrypt.compare(token, passwordToken.token);
       if (!isTokenValid) {
+        logger.warn("Attempt to use an invalid password reset token", {
+          tokenId: tokenId,
+        });
         return next(new AppError("Invalid token", 401));
       }
 
@@ -364,8 +398,9 @@ router.post(
       res.status(200).json({
         message: "Password reset successful",
       });
+      logger.info("Password reset successfully", { userId: userId });
     } catch (err) {
-      console.error(err);
+      logger.error("Password reset failed", err);
       next(err);
     }
   }
@@ -392,8 +427,12 @@ router.get(
         message: "Access Granted",
         posts: posts,
       });
+      logger.info("Posts retrieved successfully", {
+        userId: req.user.id,
+        count: posts.length,
+      });
     } catch (err) {
-      console.error("error:", err);
+      logger.error("Retrieving posts failed", err);
       next(err);
     }
   }
@@ -412,6 +451,10 @@ router.put(
     });
 
     if (!existingPost) {
+      logger.warn("Attempt to update non-existent post", {
+        postId: postId,
+        userId: req.user.id,
+      });
       return next(new AppError("Post not found.", 404));
     }
 
@@ -424,8 +467,12 @@ router.put(
         },
       });
       res.status(200).json(updatedPost);
+      logger.info("Post updated successfully", {
+        postId: updatedPost.id,
+        userId: req.user.id,
+      });
     } catch (err) {
-      console.error("Update post error:", err);
+      logger.error("Updating post failed", err);
       next(err);
     }
   }
@@ -443,6 +490,10 @@ router.delete(
     });
 
     if (!existingPost) {
+      logger.warn("Attempt to delete non-existent post", {
+        postId: postId,
+        userId: req.user.id,
+      });
       return next(new AppError("Post not found.", 404));
     }
 
@@ -451,8 +502,12 @@ router.delete(
         where: { id: parseInt(postId) },
       });
       res.status(200).json({ message: "Post deleted successfully." });
+      logger.info("Post deleted successfully", {
+        postId: postId,
+        userId: req.user.id,
+      });
     } catch (err) {
-      console.error("Delete post error:", err);
+      logger.error("Deleting post failed", err);
       next(err);
     }
   }
@@ -486,8 +541,12 @@ router.get(
         message: "Sessions retrieved successfully",
         sessions: sessions,
       });
+      logger.info("User sessions retrieved", {
+        userId: userId,
+        count: sessions.length,
+      });
     } catch (err) {
-      console.error("Error retrieving sessions:", err);
+      logger.error("Retrieving sessions failed", err);
       next(err);
     }
   }
@@ -522,12 +581,20 @@ router.post(
         },
       });
       if (!user) {
+        logger.warn("Login attempt with invalid email", {
+          email: email,
+          deviceId: deviceId,
+        });
         return next(new AppError("Invalid email or password", 401));
       }
 
       const isPasswordValid = await bcrypt.compare(password, user.password);
 
       if (!isPasswordValid) {
+        logger.warn("Login attempt with invalid password", {
+          email: email,
+          deviceId: deviceId,
+        });
         return next(new AppError("Invalid email or password", 401));
       }
 
@@ -540,7 +607,6 @@ router.post(
       );
 
       const decodedPayload = decodeJwt(accesstoken);
-      console.log("Decoded JWT Payload:", decodedPayload);
 
       const userResponse = {
         id: user.id,
@@ -554,8 +620,12 @@ router.post(
         message: "Login successful",
         user: userResponse,
       });
+      logger.info("User logged in successfully", {
+        userId: user.id,
+        deviceId: deviceId,
+      });
     } catch (err) {
-      console.log("Login error:", err);
+      logger.error("User login failed", err);
       next(err);
     }
   }
@@ -602,7 +672,6 @@ router.post(
       );
 
       const decodedPayload = decodeJwt(accesstoken);
-      console.log("Decoded JWT Payload:", decodedPayload);
 
       await prisma.refreshToken.delete({
         where: {
@@ -616,8 +685,12 @@ router.post(
         refreshtoken: refreshtoken,
         message: "Tokens refreshed successfully",
       });
+      logger.info("Tokens refreshed successfully", {
+        userId: userId,
+        deviceId: deviceId,
+      });
     } catch (err) {
-      console.log("Token refresh error:", err);
+      logger.error("Token refresh failed", err);
       next(err);
     }
   }
@@ -632,6 +705,10 @@ router.delete(
     const jti = req.user.jti;
 
     if (!userId || !jti) {
+      logger.warn("Logout attempt with invalid token payload", {
+        userId: userId,
+        jti: jti,
+      });
       return next(new AppError("Invalid token payload for logout.", 400));
     }
 
@@ -646,8 +723,12 @@ router.delete(
       res
         .status(200)
         .json({ message: "Logout successful for current session." });
+      logger.info("User logged out of current session", {
+        userId: userId,
+        jti: jti,
+      });
     } catch (err) {
-      console.error("Error during logout:", err);
+      logger.error("Logout of specific session failed", err);
       next(err);
     }
   }
@@ -672,7 +753,9 @@ router.delete(
       res.status(200).json({
         message: "Logged out from all devices",
       });
+      logger.info("User logged out of all sessions", { userId: userId });
     } catch (err) {
+      logger.error("Logout of all sessions failed", err);
       next(err);
     }
   }
@@ -687,6 +770,9 @@ router.delete(
     const userId = req.user.id;
 
     if (!jti) {
+      logger.warn("Attempt to delete session without jti in path", {
+        userId: userId,
+      });
       return next(
         new AppError("Session ID (jti) is required in the path.", 400)
       );
@@ -700,13 +786,21 @@ router.delete(
       });
 
       if (deletedToken.count === 0) {
+        logger.warn("Attempt to delete non-existent session", {
+          jti: jti,
+          userId: userId,
+        });
         return next(new AppError("Session not found or already deleted", 404));
       }
       res.status(200).json({
         message: "Session deleted successfully",
       });
+      logger.info("Specific session deleted successfully", {
+        userId: userId,
+        jti: jti,
+      });
     } catch (err) {
-      console.error("Error deleting session:", err);
+      logger.error("Deleting a specific session failed", err);
       next(err);
     }
   }

@@ -4,18 +4,19 @@ const { hasPermissions } = require("../middleware/rolePermissions");
 const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 const { authenticateToken } = require("../middleware/auth");
+const AppError = require("../utils/app-error");
 
 router.get(
   "/roles",
   authenticateToken,
   hasPermissions("roles:list"),
-  async (req, res) => {
+  async (req, res, next) => {
     try {
       const roles = await prisma.role.findMany();
       res.status(200).json(roles);
     } catch (err) {
       console.error(err);
-      res.status(500).json({ error: "Failed to retrieve roles." });
+      next(err);
     }
   }
 );
@@ -24,13 +25,13 @@ router.get(
   "/permissions",
   authenticateToken,
   hasPermissions("permissions:list"),
-  async (req, res) => {
+  async (req, res, next) => {
     try {
       const permissions = await prisma.permission.findMany();
       res.status(200).json(permissions);
     } catch (err) {
       console.error(err);
-      res.status(500).json({ error: "Failed to retrieve permissions." });
+      next(err);
     }
   }
 );
@@ -39,16 +40,18 @@ router.post(
   "/user-roles",
   authenticateToken,
   hasPermissions("user:role:assign"),
-  async (req, res) => {
+  async (req, res, next) => {
     const { userId, roleId } = req.body;
+    if (!userId || !roleId) {
+      return next(new AppError("User ID and Role ID are required.", 400));
+    }
     try {
       await prisma.userRole.create({
         data: { userId, roleId },
       });
       res.status(201).json({ message: "Role assigned successfully." });
     } catch (err) {
-      console.error(err);
-      res.status(500).json({ error: "Failed to assign role." });
+      next(err);
     }
   }
 );
@@ -57,8 +60,11 @@ router.delete(
   "/user-roles",
   authenticateToken,
   hasPermissions("user:role:remove"),
-  async (req, res) => {
+  async (req, res, next) => {
     const { userId, roleId } = req.body;
+    if (!userId || !roleId) {
+      return next(new AppError("User ID and Role ID are required.", 400));
+    }
     try {
       await prisma.userRole.delete({
         where: { userId_roleId: { userId, roleId } },
@@ -67,11 +73,11 @@ router.delete(
     } catch (err) {
       console.error(err);
       if (err.code === "P2025") {
-        res
-          .status(404)
-          .json({ error: "User does not have this role assigned." });
+        return next(
+          new AppError("User does not have this role assigned.", 404)
+        );
       } else {
-        res.status(500).json({ error: "Failed to remove role." });
+        next(err)
       }
     }
   }
@@ -81,8 +87,11 @@ router.post(
   "/role-permissions",
   authenticateToken,
   hasPermissions("role:permission:assign"),
-  async (req, res) => {
+  async (req, res, next) => {
     const { roleId, permissionId } = req.body;
+    if (!roleId || !permissionId) {
+      return next(new AppError("Role ID and Permission ID are required.", 400));
+    }
     try {
       await prisma.rolePermission.create({
         data: { roleId, permissionId },
@@ -91,8 +100,7 @@ router.post(
         .status(201)
         .json({ message: "Permission assigned to role successfully." });
     } catch (err) {
-      console.error(err);
-      res.status(500).json({ error: "Failed to assign permission to role." });
+      next(err);
     }
   }
 );
@@ -103,6 +111,9 @@ router.delete(
   hasPermissions("role:permission:remove"),
   async (req, res) => {
     const { roleId, permissionId } = req.body;
+    if (!roleId || !permissionId) {
+      return next(new AppError("Role ID and Permission ID are required.", 400));
+    }
     try {
       await prisma.rolePermission.delete({
         where: { roleId_permissionId: { roleId, permissionId } },
@@ -113,13 +124,11 @@ router.delete(
     } catch (err) {
       console.error(err);
       if (err.code === "P2025") {
-        res
-          .status(404)
-          .json({ error: "Role does not have this permission assigned." });
+        return next(
+          new AppError("Role does not have this permission assigned.", 404)
+        );
       } else {
-        res
-          .status(500)
-          .json({ error: "Failed to remove permission from role." });
+        next(err);
       }
     }
   }
