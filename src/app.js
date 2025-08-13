@@ -7,7 +7,8 @@ const AdminRoutes = require("./routes/admin");
 const cors = require('cors');
 const helmet = require('helmet');
 const { globalRateLimiter } = require("../src/middleware/ratelimiter");
-const redisClient = require("../src/config/redisClient")
+const redisClient = require("../src/config/redisClient");
+const { errorHandler } = require('./middleware/error-handler');
 
 
 
@@ -28,6 +29,6 @@ app.use("/api/auth/", Routes);
 app.use("/api/auth/", TestEmailRoute);
 app.use("/api/auth/", AdminRoutes);
 
-
+app.use(errorHandler);
 
 module.exports = app;
