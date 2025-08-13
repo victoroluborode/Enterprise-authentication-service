@@ -19,6 +19,27 @@ const logger = winston.createLogger({
     ),
     defaultMeta: {},
     transports: [
-        
-    ]
-})
+        new winston.transports.File({
+            filename: path.join("logs", "error.log"),
+            level: "error",
+        }),
+
+        new winston.transports.File({
+            filename: path.join("logs", "combined.log"),
+        }),
+
+        new winston.transports.Console({
+            level: "error"
+        }),
+    ],
+});
+
+if (process.env.NODE_ENV !== "production") {
+  logger.add(
+    new winston.transports.Console({
+      format: winston.format.simple(),
+    })
+  );
+}
+
+module.exports = logger;

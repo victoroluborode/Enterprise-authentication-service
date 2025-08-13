@@ -1,17 +1,30 @@
 require("dotenv").config();
-const errorHandler = (err, req, res, next) => {
-    console.error(err.stack);
+const logger = require("../utils/logger");
+const AppError = require("../utils/app-error");
 
+const globalErrorHandler = (err, req, res, next) => {
+  console.error(err.stack);
 
-    const statusCode = err.statusCode || 500;
-    const message = err.message || 'An unexpected error occured';
+  err.statusCode = err.statusCode || 500;
+  err.status = err.status || "error";
 
-    res.status(statusCode).json({
-        status: 'error',
-        statusCode: statusCode,
-        message: message,
-        stack: process.env.NODE_ENV === 'production' ? null : err.stack,
+  logger.error(err.message, {
+    stack: err.stack,
+    url: req.originalUrl,
+    method: req.method,
+  });
+
+  if (err instanceof AppError) {
+    res.status(err.statusCode).json({
+      status: err.status,
+      message: message,
     });
+  } else {
+    res.status(500).json({
+      status: "error",
+      message: "Something went very wrong!",
+    });
+  }
 };
 
-module.exports = { errorHandler };
+module.exports = { globalErrorHandler };
