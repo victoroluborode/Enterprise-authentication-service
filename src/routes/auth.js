@@ -49,13 +49,14 @@ const {
 } = require("../utils/template");
 const { sendEmail } = require("../utils/emailservice");
 const { hasPermissions, hasRole } = require("../middleware/rolePermissions");
+const AppError = require("../utils/app-error");
 
 router.post(
   "/register",
   registerValidation,
   sanitizeFields(["email", "password", "fullname", "deviceId"]),
   registerRateLimiter,
-  async (req, res) => {
+  async (req, res, next) => {
     const { email, password, fullname, deviceId } = req.body;
     const ipAddress = req.ip;
     const userAgent = req.headers["user-agent"];
@@ -68,9 +69,7 @@ router.post(
       console.log(existingUser);
 
       if (existingUser) {
-        return res.status(400).json({
-          message: "User already exists",
-        });
+        return next(new AppError("User already exists", 400));
       }
 
       const { userWithRoles, verificationlink } = await registerUser(
@@ -114,30 +113,26 @@ router.post(
       });
     } catch (err) {
       console.log("Registration error:", err);
-      res.status(500).json({
-        error: "Server error",
-      });
+      next(err);
     }
   }
 );
 
-router.get("/verify-email", verifyEmailToken, async (req, res) => {
+router.get("/verify-email", verifyEmailToken, async (req, res, next) => {
   try {
     return res.status(200).json({
       message: "Email successfully verified ",
     });
   } catch (err) {
     console.error(err);
-    return res.status(500).json({
-      error: "Server error",
-    });
+    next(err);
   }
 });
 
 router.post(
   "/resend-verification-email",
   resendVerificationLimiter,
-  async (req, res) => {
+  async (req, res, next) => {
     const email = req.body.email;
     try {
       const user = await prisma.user.findUnique({
@@ -147,15 +142,11 @@ router.post(
       });
 
       if (!user) {
-        return res.status(404).json({
-          message: "User not found",
-        });
+        return next(new AppError("User not found", 404));
       }
 
       if (user.emailVerified) {
-        return res.status(400).json({
-          message: "Email already verified",
-        });
+        return next(new AppError("Email already verified", 400));
       }
 
       await prisma.emailVerificationToken.deleteMany({
@@ -178,9 +169,7 @@ router.post(
       });
     } catch (err) {
       console.error(err);
-      res.status(500).json({
-        error: "Server error",
-      });
+      next(err);
     }
   }
 );
@@ -193,7 +182,7 @@ router.post(
   createPostRateLimiter,
   postValidation,
   sanitizeFields(["title", "content"]),
-  async (req, res) => {
+  async (req, res, next) => {
     const { title, content } = req.body;
     const userId = req.user.id;
     try {
@@ -211,9 +200,7 @@ router.post(
       });
     } catch (err) {
       console.error("Create post error:", err);
-      res.status(500).json({
-        error: "Failed to create post",
-      });
+      next(err);
     }
   }
 );
@@ -223,7 +210,7 @@ router.post(
   authenticateToken,
   changePasswordLimiter,
   changePasswordValidation,
-  async (req, res) => {
+  async (req, res, next) => {
     try {
       const { currentpassword, newpassword } = req.body;
       const userId = req.user.id;
@@ -236,9 +223,7 @@ router.post(
       const doesPasswordMatch = await bcrypt.compare(currentpassword, password);
 
       if (!doesPasswordMatch) {
-        return res.status(401).json({
-          message: "Password is incorrect",
-        });
+        return next(new AppError("Password is incorrect", 401));
       }
 
       const hashedNewPassword = await bcrypt.hash(newpassword, 10);
@@ -255,9 +240,7 @@ router.post(
       });
     } catch (err) {
       console.error(err);
-      res.status(500).json({
-        error: "Server error",
-      });
+      next(err);
     }
   }
 );
@@ -266,7 +249,7 @@ router.post(
   "/forgot-password",
   forgotPasswordLimiter,
   forgotPasswordValidation,
-  async (req, res) => {
+  async (req, res, next) => {
     const { email } = req.body;
     try {
       const user = await prisma.user.findUnique({
@@ -274,10 +257,12 @@ router.post(
       });
 
       if (!user) {
-        return res.status(200).json({
-          message:
+        return next(
+          new AppError(
             "If that email is associated with an account, you’ll receive a reset link shortly.",
-        });
+            200
+          )
+        );
       }
 
       const userId = user.id;
@@ -317,83 +302,81 @@ router.post(
       });
     } catch (err) {
       console.error(err);
-      res.status(500).json({
-        error: "Server error",
-      });
+      next(err);
     }
   }
 );
 
-router.post("/reset-password", resetPasswordValidation, async (req, res) => {
-  try {
-    const { tokenId, token } = req.query;
-    const { newpassword } = req.body;
+router.post(
+  "/reset-password",
+  resetPasswordValidation,
+  async (req, res, next) => {
+    try {
+      const { tokenId, token } = req.query;
+      const { newpassword } = req.body;
 
-    await prisma.passwordResetToken.deleteMany({
-      where: {
-        expiresAt: {
-          lt: new Date(),
+      await prisma.passwordResetToken.deleteMany({
+        where: {
+          expiresAt: {
+            lt: new Date(),
+          },
         },
-      },
-    });
-
-    const passwordToken = await prisma.passwordResetToken.findUnique({
-      where: {
-        tokenId: tokenId,
-      },
-    });
-
-    if (!passwordToken || passwordToken.expiresAt < new Date()) {
-      return res.status(401).json({
-        message: "Invalid token",
       });
+
+      const passwordToken = await prisma.passwordResetToken.findUnique({
+        where: {
+          tokenId: tokenId,
+        },
+      });
+
+      if (!passwordToken || passwordToken.expiresAt < new Date()) {
+        return next(new AppError("Invalid or expired token", 401));
+      }
+
+      const isTokenValid = await bcrypt.compare(token, passwordToken.token);
+      if (!isTokenValid) {
+        return next(new AppError("Invalid token", 401));
+      }
+
+      const userId = passwordToken.userId;
+      const hashedNewPassword = await bcrypt.hash(newpassword, 10);
+
+      await prisma.user.update({
+        where: { id: userId },
+        data: {
+          password: hashedNewPassword,
+        },
+      });
+
+      await prisma.refreshToken.deleteMany({
+        where: {
+          userId: userId,
+        },
+      });
+
+      await prisma.user.update({
+        where: { id: userId },
+        data: { tokenVersion: { increment: 1 } },
+      });
+
+      await prisma.passwordResetToken.delete({ where: { tokenId: tokenId } });
+
+      res.status(200).json({
+        message: "Password reset successful",
+      });
+    } catch (err) {
+      console.error(err);
+      next(err);
     }
-
-    const isTokenValid = await bcrypt.compare(token, passwordToken.token);
-    if (!isTokenValid) {
-      return res.status(401).json({ message: "Invalid token" });
-    }
-
-    const userId = passwordToken.userId;
-    const hashedNewPassword = await bcrypt.hash(newpassword, 10);
-
-    await prisma.user.update({
-      where: { id: userId },
-      data: {
-        password: hashedNewPassword,
-      },
-    });
-
-    await prisma.refreshToken.deleteMany({
-      where: {
-        userId: userId,
-      },
-    });
-
-    await prisma.user.update({
-      where: { id: userId },
-      data: { tokenVersion: { increment: 1 } },
-    });
-
-    await prisma.passwordResetToken.delete({ where: { tokenId: tokenId } });
-
-    res.status(200).json({
-      message: "Password reset successful",
-    });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({
-      error: "Server error",
-    });
   }
-});
+);
 
 router.get(
   "/posts",
   authenticateToken,
   hasPermissions(["post:read"]),
   postsRateLimiter,
-  async (req, res) => {
+  async (req, res, next) => {
     try {
       const posts = await prisma.post.findMany({
         include: {
@@ -411,10 +394,7 @@ router.get(
       });
     } catch (err) {
       console.error("error:", err);
-      res.status(500).json({
-        error: "server error",
-        message: "An unexpected error occurred while getting posts",
-      });
+      next(err);
     }
   }
 );
@@ -423,7 +403,7 @@ router.put(
   "/posts/:postId",
   authenticateToken,
   hasPermissions(["post:update_own", "post:update"]),
-  async (req, res) => {
+  async (req, res, next) => {
     const { postId } = req.params;
     const { title, content } = req.body;
 
@@ -432,9 +412,7 @@ router.put(
     });
 
     if (!existingPost) {
-      return res.status(404).json({
-        error: "Post not found.",
-      });
+      return next(new AppError("Post not found.", 404));
     }
 
     try {
@@ -448,9 +426,7 @@ router.put(
       res.status(200).json(updatedPost);
     } catch (err) {
       console.error("Update post error:", err);
-      res.status(500).json({
-        error: "Failed to update post",
-      });
+      next(err);
     }
   }
 );
@@ -459,7 +435,7 @@ router.delete(
   "/posts/:postId",
   authenticateToken,
   hasPermissions(["post:delete_own", "post:delete"]),
-  async (req, res) => {
+  async (req, res, next) => {
     const { postId } = req.params;
 
     const existingPost = await prisma.post.findUnique({
@@ -467,7 +443,7 @@ router.delete(
     });
 
     if (!existingPost) {
-      return res.status(404).json({ error: "Post not found." });
+      return next(new AppError("Post not found.", 404));
     }
 
     try {
@@ -477,7 +453,7 @@ router.delete(
       res.status(200).json({ message: "Post deleted successfully." });
     } catch (err) {
       console.error("Delete post error:", err);
-      res.status(500).json({ error: "Failed to delete post." });
+      next(err);
     }
   }
 );
@@ -486,9 +462,9 @@ router.get(
   "/sessions",
   authenticateToken,
   sessionsRateLimiter,
-  async (req, res) => {
+  async (req, res, next) => {
     try {
-      const userId = req.user.sub;
+      const userId = req.user.id;
       const sessions = await prisma.refreshToken.findMany({
         where: {
           userId: userId,
@@ -512,10 +488,7 @@ router.get(
       });
     } catch (err) {
       console.error("Error retrieving sessions:", err);
-      res.status(500).json({
-        error: "Server error",
-        message: "An unexpected error occurred while retrieving sessions",
-      });
+      next(err);
     }
   }
 );
@@ -525,7 +498,7 @@ router.post(
   loginValidation,
   sanitizeFields(["email", "password", "deviceId"]),
   loginRateLimiter,
-  async (req, res) => {
+  async (req, res, next) => {
     const { email, password, deviceId } = req.body;
     const ipAddress = req.ip;
     const userAgent = req.headers["user-agent"];
@@ -549,17 +522,13 @@ router.post(
         },
       });
       if (!user) {
-        return res.status(401).json({
-          message: "Invalid email or password",
-        });
+        return next(new AppError("Invalid email or password", 401));
       }
 
       const isPasswordValid = await bcrypt.compare(password, user.password);
 
       if (!isPasswordValid) {
-        return res.status(401).json({
-          message: "Invalid email or password",
-        });
+        return next(new AppError("Invalid email or password", 401));
       }
 
       const accesstoken = await createAccessToken(user);
@@ -587,9 +556,7 @@ router.post(
       });
     } catch (err) {
       console.log("Login error:", err);
-      res.status(500).json({
-        error: "Server error",
-      });
+      next(err);
     }
   }
 );
@@ -599,7 +566,7 @@ router.post(
   tokenValidation,
   verifyRefreshTokens,
   tokenRateLimiter,
-  async (req, res) => {
+  async (req, res, next) => {
     const jtiOldToken = req.jtiOldToken;
     const userId = req.user.id;
     const deviceId = req.user.deviceId;
@@ -651,10 +618,7 @@ router.post(
       });
     } catch (err) {
       console.log("Token refresh error:", err);
-      res.status(500).json({
-        error: "server error",
-        message: "An unexpected error occurred during token refresh.",
-      });
+      next(err);
     }
   }
 );
@@ -663,14 +627,12 @@ router.delete(
   "/logout",
   authenticateToken,
   logoutSpecificRateLimiter,
-  async (req, res) => {
+  async (req, res, next) => {
     const userId = req.user.id;
     const jti = req.user.jti;
 
     if (!userId || !jti) {
-      return res
-        .status(400)
-        .json({ message: "Invalid token payload for logout." });
+      return next(new AppError("Invalid token payload for logout.", 400));
     }
 
     try {
@@ -686,7 +648,7 @@ router.delete(
         .json({ message: "Logout successful for current session." });
     } catch (err) {
       console.error("Error during logout:", err);
-      res.status(500).json({ error: "Server error during logout." });
+      next(err);
     }
   }
 );
@@ -695,8 +657,8 @@ router.delete(
   "/sessions",
   authenticateToken,
   logoutAllRateLimiter,
-  async (req, res) => {
-    const userId = req.user.sub;
+  async (req, res, next) => {
+    const userId = req.user.id;
     try {
       await prisma.refreshToken.deleteMany({
         where: {
@@ -711,10 +673,7 @@ router.delete(
         message: "Logged out from all devices",
       });
     } catch (err) {
-      res.status(500).json({
-        error: "Server error",
-        message: "An unexpected error occurred during logout all",
-      });
+      next(err);
     }
   }
 );
@@ -723,14 +682,14 @@ router.delete(
   "/sessions/:jti",
   authenticateToken,
   logoutSpecificRateLimiter,
-  async (req, res) => {
+  async (req, res, next) => {
     const jti = req.params.jti;
-    const userId = req.user.sub;
+    const userId = req.user.id;
 
     if (!jti) {
-      return res
-        .status(400)
-        .json({ message: "Session ID (jti) is required in the path." });
+      return next(
+        new AppError("Session ID (jti) is required in the path.", 400)
+      );
     }
     try {
       const deletedToken = await prisma.refreshToken.deleteMany({
@@ -741,19 +700,14 @@ router.delete(
       });
 
       if (deletedToken.count === 0) {
-        return res.status(404).json({
-          message: "Session not found or already deleted",
-        });
+        return next(new AppError("Session not found or already deleted", 404));
       }
       res.status(200).json({
         message: "Session deleted successfully",
       });
     } catch (err) {
       console.error("Error deleting session:", err);
-      res.status(500).json({
-        error: "Server error",
-        message: "An unexpected error occurred while deleting the session",
-      });
+      next(err);
     }
   }
 );
