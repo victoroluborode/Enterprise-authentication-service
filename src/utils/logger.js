@@ -1,5 +1,6 @@
 const winston = require("winston");
 const path = require("path");
+const DailyRotateFile = require('winston-daily-rotate-file');
 require("dotenv").config();
 
 const myFormat = winston.format.printf(
@@ -13,6 +14,15 @@ const getModuleLabel = (callingModule) => {
     ? path.relative(process.cwd(), callingModule.filename)
     : "APP";
 };
+
+const dailyRotateFileTransport = new DailyRotateFile({
+    filename: path.join("logs", "application-%DATE%.log"),
+    datePattern: "YYYY-MM-DD",
+    zippedArchive: true,
+    maxSize: "20m",
+    maxFiles: "14d",
+    format: winston.format.json()
+}) 
 
 const logger = winston.createLogger({
   level: process.env.LOG_LEVEL || "debug",
@@ -37,6 +47,8 @@ const logger = winston.createLogger({
     new winston.transports.Console({
       level: "error",
     }),
+
+    dailyRotateFileTransport,
   ],
 });
 
