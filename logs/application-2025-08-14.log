@@ -1,0 +1,1 @@
+{"duration":"167ms","ip":"::1","label":"src/utils/logger.js","level":"info","message":"Request completed","method":"GET","status":200,"timestamp":"2025-08-14 07:30:25","url":"/api/auth/health"}

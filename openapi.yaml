@@ -1,0 +1,1031 @@
+openapi: 3.0.0
+info:
+  title: Enterprise Authentication Service API
+  description: This service handles user authentication and authorization for the enterprise application.
+  version: 1.0.0
+servers:
+  - url: http://localhost:3000/api/auth
+    description: Local development server
+
+paths:
+  /login:
+    post:
+      summary: Authenticate a user
+      description: |
+        Authenticates a user with an email and password. A successful login returns an access token and sets a secure HttpOnly refresh token cookie.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+                - deviceId
+              properties:
+                email:
+                  type: string
+                  example: victoroluborode@example.com
+                  description: The user's email address.
+                password:
+                  type: string
+                  example: securepassword123
+                  description: The user's password.
+                deviceId:
+                  type: string
+                  example: "abcdef1234567890"
+                  description: Unique identifier for the user's device.
+      responses:
+        '200':
+          description: Login successful. Returns an access token and sets a refresh token cookie.
+          headers:
+            Set-Cookie:
+              description: The refresh token is set as a secure, HttpOnly cookie.
+              schema:
+                type: string
+                example: "refreshToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJ2aWN0b3JvbHVib3JvZGUiLCJpYXQiOjE2ODcyMDA2NDgsImV4cCI6MTY4NzIwNDI0OH0.SFLy7gU5T1hS4fR5jK8y8f8JvL2fQv4oD3C8gL8q; HttpOnly; Secure"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accessToken:
+                    type: string
+                    example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJ2aWN0b3JvbHVib3JvZGUiLCJpYXQiOjE2ODcyMDA2NDgsImV4cCI6MTY4NzIwNDI0OH0.SFLy7gU5T1hS4fR5jK8y8f8JvL2fQv4oD3C8gL8q"
+                  message:
+                    type: string
+                    example: "Login successful"
+                  user:
+                    $ref: '#/components/schemas/UserResponse'
+        '401':
+          description: Invalid email or password.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /register:
+    post:
+      summary: Register a new user
+      description: Creates a new user account and sends a verification email.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+                - fullname
+                - deviceId
+              properties:
+                email:
+                  type: string
+                  example: newuser@example.com
+                password:
+                  type: string
+                  example: StrongPassword123!
+                fullname:
+                  type: string
+                  example: New User
+                deviceId:
+                  type: string
+                  example: "abcdef1234567890"
+      responses:
+        '201':
+          description: User created successfully.
+          headers:
+            Set-Cookie:
+              description: The refresh token is set as a secure, HttpOnly cookie.
+              schema:
+                type: string
+                example: "refreshToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJ2aWN0b3JvbHVib3JvZGUiLCJpYXQiOjE2ODcyMDA2NDgsImV4cCI6MTY4NzIwNDI0OH0.SFLy7gU5T1hS4fR5jK8y8f8JvL2fQv4oD3C8gL8q; HttpOnly; Secure"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "User registered successfully."
+                  verificationLink:
+                    type: string
+                    example: "http://localhost:3000/api/auth/verify-email?token=abcde&tokenId=12345"
+                  accessToken:
+                    type: string
+                    example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJ2aWN0b3JvbHVib3JvZGUiLCJpYXQiOjE2ODcyMDA2NDgsImV4cCI6MTY4NzIwNDI0OH0.SFLy7gU5T1hS4fR5jK8y8f8JvL2fQv4oD3C8gL8q"
+                  user:
+                    $ref: '#/components/schemas/UserResponse'
+                  roles:
+                    type: array
+                    items:
+                      type: string
+                      example: "user"
+        '400':
+          description: User already exists.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /verify-email:
+    get:
+      summary: Verify a user's email address
+      description: Verifies a user's email using a token and token ID from a verification link.
+      parameters:
+        - name: token
+          in: query
+          required: true
+          schema:
+            type: string
+          example: "abcde"
+        - name: tokenId
+          in: query
+          required: true
+          schema:
+            type: string
+          example: "12345"
+      responses:
+        '200':
+          description: Email verified successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Email successfully verified"
+        '401':
+          description: Invalid or expired token.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /resend-verification-email:
+    post:
+      summary: Resend verification email
+      description: Sends a new email verification link to a user.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+              properties:
+                email:
+                  type: string
+                  example: user@example.com
+      responses:
+        '200':
+          description: Verification email resent successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Verification email resent successfully"
+                  verificationlink:
+                    type: string
+                    example: "http://localhost:3000/api/auth/verify-email?token=abcde&tokenId=12345"
+        '400':
+          description: Email already verified.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: User not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /post:
+    post:
+      summary: Create a new post
+      description: |
+        Creates a new post. This route requires a valid access token and the 'post:create' permission.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - title
+                - content
+              properties:
+                title:
+                  type: string
+                  example: "My First Blog Post"
+                content:
+                  type: string
+                  example: "This is the content of my first post."
+      responses:
+        '201':
+          description: Post created successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Post'
+        '401':
+          description: Unauthorized due to invalid token or missing permissions.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /change-password:
+    post:
+      summary: Change user password
+      description: Allows a logged-in user to change their password.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - currentpassword
+                - newpassword
+              properties:
+                currentpassword:
+                  type: string
+                  example: "securepassword123"
+                newpassword:
+                  type: string
+                  example: "NewStrongPassword456"
+      responses:
+        '200':
+          description: Password changed successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Password changed successfully"
+        '401':
+          description: Invalid current password.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /forgot-password:
+    post:
+      summary: Request a password reset link
+      description: Sends a password reset link to the user's email address.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+              properties:
+                email:
+                  type: string
+                  example: user@example.com
+      responses:
+        '200':
+          description: |
+            A password reset link has been sent if an account with that email exists.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "If an account with that email exists, a password reset link has been sent."
+                  resetPasswordLink:
+                    type: string
+                    example: "http://localhost:3000/api/auth/reset-password?tokenId=abcde&token=12345"
+
+  /reset-password:
+    post:
+      summary: Reset password
+      description: Resets the user's password using a valid token and token ID from the reset link.
+      parameters:
+        - name: tokenId
+          in: query
+          required: true
+          schema:
+            type: string
+          example: "abcde"
+        - name: token
+          in: query
+          required: true
+          schema:
+            type: string
+          example: "12345"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - newpassword
+              properties:
+                newpassword:
+                  type: string
+                  example: "NewStrongPassword456"
+      responses:
+        '200':
+          description: Password reset successful.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Password reset successful"
+        '401':
+          description: Invalid or expired token.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /posts:
+    get:
+      summary: Retrieve all posts
+      description: |
+        Returns a list of all posts. This route requires a valid access token and the 'post:read' permission.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Posts retrieved successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Access Granted"
+                  posts:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PostWithUser'
+        '401':
+          description: Unauthorized due to invalid token or missing permissions.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /posts/{postId}:
+    put:
+      summary: Update a post
+      description: |
+        Updates a specific post. This route requires a valid access token and 'post:update_own' or 'post:update' permissions.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: postId
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                  example: "My Updated Blog Post"
+                content:
+                  type: string
+                  example: "This is the updated content."
+      responses:
+        '200':
+          description: Post updated successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Post'
+        '401':
+          description: Unauthorized due to invalid token or missing permissions.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Post not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      summary: Delete a post
+      description: |
+        Deletes a specific post. This route requires a valid access token and 'post:delete_own' or 'post:delete' permissions.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: postId
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '200':
+          description: Post deleted successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Post deleted successfully."
+        '401':
+          description: Unauthorized due to invalid token or missing permissions.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Post not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /sessions:
+    get:
+      summary: Get all active sessions for the current user
+      description: |
+        Retrieves a list of all active sessions (refresh tokens) for the logged-in user.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Sessions retrieved successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Sessions retrieved successfully"
+                  sessions:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Session'
+        '401':
+          description: Unauthorized due to invalid token.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      summary: Log out from all sessions
+      description: Invalidates all active refresh tokens for the logged-in user, logging them out from all devices.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Successfully logged out from all devices.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Logged out from all devices"
+        '401':
+          description: Unauthorized due to invalid token.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /sessions/{jti}:
+    delete:
+      summary: Log out a specific session
+      description: |
+        Deletes a specific session (refresh token) by its JTI (JWT ID). This logs the user out from a single device.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: jti
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "034c5678-012b-34c5-5d6e-78f90ab123c4"
+      responses:
+        '200':
+          description: Session deleted successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Session deleted successfully"
+        '400':
+          description: Missing or invalid JTI.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized due to invalid token.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Session not found or already deleted.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /logout:
+    delete:
+      summary: Log out from the current session
+      description: Invalidates the refresh token of the current session, logging the user out from their current device.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Logout successful for current session.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Logout successful for current session."
+        '400':
+          description: Invalid token payload for logout.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized due to invalid token.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /token:
+    post:
+      summary: Refresh access token
+      description: |
+        Exchanges a valid refresh token (from a cookie) for a new access token and a new refresh token (also in a cookie).
+      parameters:
+        - name: refreshToken
+          in: cookie
+          description: The secure HttpOnly refresh token cookie.
+          required: true
+          schema:
+            type: string
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+      responses:
+        '200':
+          description: Tokens refreshed successfully.
+          headers:
+            Set-Cookie:
+              description: The new refresh token is set as a secure, HttpOnly cookie.
+              schema:
+                type: string
+                example: "refreshToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...; HttpOnly; Secure"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accessToken:
+                    type: string
+                    example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJ2aWN0b3JvbHVib3JvZGUiLCJpYXQiOjE2ODcyMDA2NDgsImV4cCI6MTY4NzIwNDI0OH0.SFLy7gU5T1hS4fR5jK8y8f8JvL2fQv4oD3C8gL8q"
+                  message:
+                    type: string
+                    example: "Tokens refreshed successfully"
+        '401':
+          description: Unauthorized due to invalid or missing refresh token.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /admin/roles:
+    get:
+      summary: Get all roles
+      description: |
+        Retrieves a list of all roles in the system. Requires a valid access token and the 'roles:list' permission.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Roles retrieved successfully.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Role'
+        '401':
+          description: Unauthorized due to invalid token or missing permissions.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /admin/permissions:
+    get:
+      summary: Get all permissions
+      description: |
+        Retrieves a list of all permissions in the system. Requires a valid access token and the 'permissions:list' permission.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Permissions retrieved successfully.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Permission'
+        '401':
+          description: Unauthorized due to invalid token or missing permissions.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /admin/user-roles:
+    post:
+      summary: Assign a role to a user
+      description: |
+        Assigns a specific role to a user. Requires a valid access token and the 'user:role:assign' permission.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - userId
+                - roleId
+              properties:
+                userId:
+                  type: string
+                  example: "65e23c7c2518e3a2410a0e70"
+                roleId:
+                  type: integer
+                  example: 2
+      responses:
+        '201':
+          description: Role assigned successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Role assigned successfully."
+        '400':
+          description: Missing user ID or role ID.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized due to invalid token or missing permissions.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      summary: Remove a role from a user
+      description: |
+        Removes a specific role from a user. Requires a valid access token and the 'user:role:remove' permission.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - userId
+                - roleId
+              properties:
+                userId:
+                  type: string
+                  example: "65e23c7c2518e3a2410a0e70"
+                roleId:
+                  type: integer
+                  example: 2
+      responses:
+        '200':
+          description: Role removed successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Role removed successfully."
+        '400':
+          description: Missing user ID or role ID.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized due to invalid token or missing permissions.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: User does not have this role assigned.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /admin/role-permissions:
+    post:
+      summary: Assign a permission to a role
+      description: |
+        Assigns a permission to a specific role. Requires a valid access token and the 'role:permission:assign' permission.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - roleId
+                - permissionId
+              properties:
+                roleId:
+                  type: integer
+                  example: 2
+                permissionId:
+                  type: integer
+                  example: 5
+      responses:
+        '201':
+          description: Permission assigned successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Permission assigned to role successfully."
+        '400':
+          description: Missing role ID or permission ID.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized due to invalid token or missing permissions.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      summary: Remove a permission from a role
+      description: |
+        Removes a permission from a specific role. Requires a valid access token and the 'role:permission:remove' permission.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - roleId
+                - permissionId
+              properties:
+                roleId:
+                  type: integer
+                  example: 2
+                permissionId:
+                  type: integer
+                  example: 5
+      responses:
+        '200':
+          description: Permission removed successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Permission removed from role successfully."
+        '400':
+          description: Missing role ID or permission ID.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized due to invalid token or missing permissions.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Role does not have this permission assigned.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /health:
+    get:
+      summary: Check server health
+      description: Returns the health status of the server.
+      responses:
+        '200':
+          description: Server is healthy and running.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "healthy"
+                  uptime:
+                    type: number
+                    example: 3600
+                  message:
+                    type: string
+                    example: "Server is up and running"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    UserResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "65e23c7c2518e3a2410a0e70"
+        email:
+          type: string
+          example: "user@example.com"
+        fullname:
+          type: string
+          example: "User Name"
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          example: "Invalid credentials"
+    Post:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        title:
+          type: string
+          example: "My First Blog Post"
+        content:
+          type: string
+          example: "This is the content of my first post."
+        userId:
+          type: string
+          example: "65e23c7c2518e3a2410a0e70"
+        createdAt:
+          type: string
+          format: date-time
+          example: "2025-08-13T10:00:00.000Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2025-08-13T10:00:00.000Z"
+    PostWithUser:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        title:
+          type: string
+          example: "My First Blog Post"
+        content:
+          type: string
+          example: "This is the content of my first post."
+        userId:
+          type: string
+          example: "65e23c7c2518e3a2410a0e70"
+        createdAt:
+          type: string
+          format: date-time
+          example: "2025-08-13T10:00:00.000Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2025-08-13T10:00:00.000Z"
+        user:
+          type: object
+          properties:
+            fullname:
+              type: string
+              example: "Victor Oluborode"
+            email:
+              type: string
+              example: "victor@example.com"
+    Session:
+      type: object
+      properties:
+        jti:
+          type: string
+          example: "034c5678-012b-34c5-5d6e-78f90ab123c4"
+        deviceId:
+          type: string
+          example: "abcdef1234567890"
+        ipAddress:
+          type: string
+          example: "192.168.1.1"
+        userAgent:
+          type: string
+          example: "Mozilla/5.0"
+        expiresAt:
+          type: string
+          format: date-time
+          example: "2025-09-13T10:00:00.000Z"
+        createdAt:
+          type: string
+          format: date-time
+          example: "2025-08-13T10:00:00.000Z"
+    Role:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: "user"
+    Permission:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: "post:create"

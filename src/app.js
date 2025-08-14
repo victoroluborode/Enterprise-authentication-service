@@ -10,9 +10,12 @@ const { globalRateLimiter } = require("../src/middleware/ratelimiter");
 const redisClient = require("../src/config/redisClient");
 const { globalErrorHandler } = require('./middleware/error-handler');
 const requestLogger = require("../src/middleware/request-logger");
+const swaggerUi = require("swagger-ui-express");
+const YAML = require("yamljs");
+const path = require("path");
 
 
-
+const swaggerDocument = YAML.load(path.resolve(__dirname, '../openapi.yaml'));
 
 
 app.use(express.json());
@@ -26,6 +29,17 @@ app.use(
 );
 
 app.use(requestLogger);
+
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+
+app.get("/api/auth/health", (req, res) => {
+  res.status(200).json({
+    status: "healthy",
+    uptime: process.uptime(),
+    message: "Server is up and running"
+  })
+})
+
 app.use(globalRateLimiter);
 app.use("/api/auth/", Routes);
 app.use("/api/auth/", TestEmailRoute);
