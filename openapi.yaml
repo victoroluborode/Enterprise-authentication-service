@@ -71,7 +71,16 @@ paths:
   /register:
     post:
       summary: Register a new user
-      description: Creates a new user account and sends a verification email.
+      description:  |
+       Creates a new user account and sends a verification email.
+      parameters:
+        - name: X-Device-Id
+          in: header
+          description: Unique identifier for the user's device.
+          required: true
+          schema:
+            type: string
+            example: "abcdef1234567890"
       requestBody:
         required: true
         content:
@@ -82,7 +91,6 @@ paths:
                 - email
                 - password
                 - fullname
-                - deviceId
               properties:
                 email:
                   type: string
@@ -93,9 +101,6 @@ paths:
                 fullname:
                   type: string
                   example: New User
-                deviceId:
-                  type: string
-                  example: "abcdef1234567890"
       responses:
         '201':
           description: User created successfully.

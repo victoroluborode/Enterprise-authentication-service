@@ -55,10 +55,11 @@ const logger = require("../utils/logger");
 router.post(
   "/register",
   registerValidation,
-  sanitizeFields(["email", "password", "fullname", "deviceId"]),
+  sanitizeFields(["email", "password", "fullname"]),
   registerRateLimiter,
   async (req, res, next) => {
-    const { email, password, fullname, deviceId } = req.body;
+    const { email, password, fullname } = req.body;
+    const deviceId = req.headers['x-device-id'];
     const ipAddress = req.ip;
     const userAgent = req.headers["user-agent"];
 
