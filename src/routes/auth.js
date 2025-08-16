@@ -103,12 +103,18 @@ router.post(
         fullname: userWithRoles.fullname,
       };
 
+      res.cookie('refreshToken', refreshToken.token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+      })
+
       res.status(201).json({
         success: true,
         message: `User registered successfully.`,
         verificationLink: verificationlink,
-        accessToken,
-        refreshToken: refreshToken.token,
+        accessToken: accessToken,
         user: userResponse,
         roles: userRoles,
       });
