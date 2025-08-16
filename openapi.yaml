@@ -13,6 +13,14 @@ paths:
       summary: Authenticate a user
       description: |
         Authenticates a user with an email and password. A successful login returns an access token and sets a secure HttpOnly refresh token cookie.
+      parameters:
+        - name: X-Device-Id
+        in: header
+        description: Unique identifier for the user's device.
+        required: true
+        schema:
+          type: string
+          example: "abcdef1234567890"
       requestBody:
         required: true
         content:
@@ -22,7 +30,6 @@ paths:
               required:
                 - email
                 - password
-                - deviceId
               properties:
                 email:
                   type: string
@@ -32,10 +39,6 @@ paths:
                   type: string
                   example: securepassword123
                   description: The user's password.
-                deviceId:
-                  type: string
-                  example: "abcdef1234567890"
-                  description: Unique identifier for the user's device.
       responses:
         '200':
           description: Login successful. Returns an access token and sets a refresh token cookie.

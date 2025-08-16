@@ -558,7 +558,8 @@ router.post(
   sanitizeFields(["email", "password", "deviceId"]),
   loginRateLimiter,
   async (req, res, next) => {
-    const { email, password, deviceId } = req.body;
+    const { email, password } = req.body;
+    const deviceId = req.headers['x-device-id']
     const ipAddress = req.ip;
     const userAgent = req.headers["user-agent"];
     try {
@@ -598,15 +599,20 @@ router.post(
         return next(new AppError("Invalid email or password", 401));
       }
 
-      const accesstoken = await createAccessToken(user);
-      const refreshtoken = await createRefreshToken(
+      const accessToken = await createAccessToken(user);
+      const refreshToken = await createRefreshToken(
         user,
         deviceId,
         ipAddress,
         userAgent
       );
 
-      const decodedPayload = decodeJwt(accesstoken);
+      res.cookie('refreshToken', refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+      })
 
       const userResponse = {
         id: user.id,
@@ -615,8 +621,7 @@ router.post(
       };
 
       res.status(200).json({
-        accesstoken: accesstoken,
-        refreshtoken: refreshtoken,
+        accesstoken: accessToken,
         message: "Login successful",
         user: userResponse,
       });
