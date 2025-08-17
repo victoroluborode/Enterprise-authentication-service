@@ -15,10 +15,10 @@ paths:
         Authenticates a user with an email and password. A successful login returns an access token and sets a secure HttpOnly refresh token cookie.
       parameters:
         - name: X-Device-Id
-        in: header
-        description: Unique identifier for the user's device.
-        required: true
-        schema:
+          in: header
+          description: Unique identifier for the user's device.
+          required: true
+      schema:
           type: string
           example: "abcdef1234567890"
       requestBody:
@@ -115,15 +115,9 @@ paths:
               schema:
                 type: object
                 properties:
-                  success:
-                    type: boolean
-                    example: true
                   message:
                     type: string
                     example: "User registered successfully."
-                  verificationLink:
-                    type: string
-                    example: "http://localhost:3000/api/auth/verify-email?token=abcde&tokenId=12345"
                   accessToken:
                     type: string
                     example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJ2aWN0b3JvbHVib3JvZGUiLCJpYXQiOjE2ODcyMDA2NDgsImV4cCI6MTY4NzIwNDI0OH0.SFLy7gU5T1hS4fR5jK8y8f8JvL2fQv4oD3C8gL8q"

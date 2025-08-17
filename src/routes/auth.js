@@ -75,7 +75,7 @@ router.post(
         return next(new AppError("User already exists", 400));
       }
 
-      const { userWithRoles, verificationlink } = await registerUser(
+      const { userWithRoles } = await registerUser(
         email,
         password,
         fullname
@@ -93,9 +93,7 @@ router.post(
         userAgent
       );
 
-      const decodedPayload = decodeJwt(accessToken);
-
-      const decodedPayloadRefresh = decodeJwt(refreshToken.token);
+      
 
       const userResponse = {
         id: userWithRoles.id,
@@ -111,9 +109,7 @@ router.post(
       })
 
       res.status(201).json({
-        success: true,
-        message: `User registered successfully.`,
-        verificationLink: verificationlink,
+        message: `User registered successfully. Please check your email for a verification link`,
         accessToken: accessToken,
         user: userResponse,
         roles: userRoles,
