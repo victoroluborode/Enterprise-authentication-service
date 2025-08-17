@@ -641,14 +641,12 @@ router.post(
 
 router.post(
   "/token",
-  tokenValidation,
   verifyRefreshTokens,
   tokenRateLimiter,
   async (req, res, next) => {
     const jtiOldToken = req.jtiOldToken;
     const userId = req.user.id;
     const deviceId = req.user.deviceId;
-
     const ipAddress = req.ip;
     const userAgent = req.headers["user-agent"];
     try {
@@ -671,15 +669,15 @@ router.post(
         },
       });
 
-      const accesstoken = await createAccessToken(userWithRoles);
-      const refreshtoken = await createRefreshToken(
+      const accessToken = await createAccessToken(userWithRoles);
+      const refreshToken = await createRefreshToken(
         req.user,
         deviceId,
         ipAddress,
         userAgent
       );
 
-      const decodedPayload = decodeJwt(accesstoken);
+
 
       await prisma.refreshToken.delete({
         where: {
@@ -688,9 +686,15 @@ router.post(
         },
       });
 
+      res.cookie('refreshToken', refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        expires: refreshToken.expiresAt,
+      })
+
       res.status(200).json({
-        accesstoken: accesstoken,
-        refreshtoken: refreshtoken,
+        accesstoken: accessToken,
         message: "Tokens refreshed successfully",
       });
       logger.info("Tokens refreshed successfully", {

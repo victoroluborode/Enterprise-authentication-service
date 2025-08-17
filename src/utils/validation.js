@@ -57,20 +57,6 @@ const postValidation = [
 ]
 
 
-const tokenValidation = [
-  body('token').notEmpty().withMessage("Refresh token required"),
-  (req, res, next) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(401).json({
-        message: errors.array(),
-      })
-    }
-    next();
-  }
-]
-
-
 const changePasswordValidation = [
   body("currentpassword")
     .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/)

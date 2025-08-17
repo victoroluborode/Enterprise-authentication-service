@@ -1,4 +1,5 @@
 const express = require('express');
+const cookieParser = require("cookie-parser");
 const app = express();
 require('dotenv').config();
 const Routes = require("./routes/auth");
@@ -28,6 +29,7 @@ app.use(
   })
 );
 
+app.use(cookieParser);
 app.use(requestLogger);
 
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));

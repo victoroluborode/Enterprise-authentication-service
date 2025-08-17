@@ -51,13 +51,14 @@ const createRefreshToken = async (user, deviceId, ipAddress, userAgent) => {
   });
   return {
     token: refreshToken,
-    jti: jti
+    jti: jti,
+    expiresAt: expiresAt
   };
 };
 
 
 const verifyRefreshTokens = async (req, res, next) => {
-  const refreshToken = req.body.token;
+  const refreshToken = req.cookies.refreshToken;
   try {
     if (!refreshToken) {
       return res.status(401).json({
