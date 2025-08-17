@@ -61,7 +61,7 @@ router.delete(
   authenticateToken,
   hasPermissions("user:role:remove"),
   async (req, res, next) => {
-    const { userId, roleId } = req.body;
+    const { userId, roleId } = req.params;
     if (!userId || !roleId) {
       return next(new AppError("User ID and Role ID are required.", 400));
     }

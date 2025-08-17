@@ -7,7 +7,6 @@ const registerUser = require("../services/userService");
 const {
   registerValidation,
   loginValidation,
-  tokenValidation,
   postValidation,
   changePasswordValidation,
   forgotPasswordValidation,

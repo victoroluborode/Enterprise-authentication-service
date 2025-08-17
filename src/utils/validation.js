@@ -110,4 +110,4 @@ const resetPasswordValidation = [
     next();
   },
 ];
-module.exports = { tokenValidation, registerValidation, loginValidation, postValidation, changePasswordValidation, forgotPasswordValidation, resetPasswordValidation};
+module.exports = { registerValidation, loginValidation, postValidation, changePasswordValidation, forgotPasswordValidation, resetPasswordValidation};

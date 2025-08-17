@@ -6,7 +6,6 @@ info:
 servers:
   - url: http://localhost:3000/api/auth
     description: Local development server
-
 paths:
   /login:
     post:
@@ -20,7 +19,7 @@ paths:
           required: true
           schema:
             type: string
-            example: "abcdef1234567890"
+            example: abcdef1234567890
       requestBody:
         required: true
         content:
@@ -47,7 +46,7 @@ paths:
               description: The refresh token is set as a secure, HttpOnly cookie.
               schema:
                 type: string
-                example: "refreshToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJ2aWN0b3JvbHVib3JvZGUiLCJpYXQiOjE2ODcyMDA2NDgsImV4cCI6MTY4NzIwNDI0OH0.SFLy7gU5T1hS4fR5jK8y8f8JvL2fQv4oD3C8gL8q; HttpOnly; Secure"
+                example: refreshToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJ2aWN0b3JvbHVib3JvZGUiLCJpYXQiOjE2ODcyMDA2NDgsImV4cCI6MTY4NzIwNDI0OH0.SFLy7gU5T1hS4fR5jK8y8f8JvL2fQv4oD3C8gL8q; HttpOnly; Secure
           content:
             application/json:
               schema:
@@ -55,10 +54,10 @@ paths:
                 properties:
                   accessToken:
                     type: string
-                    example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJ2aWN0b3JvbHVib3JvZGUiLCJpYXQiOjE2ODcyMDA2NDgsImV4cCI6MTY4NzIwNDI0OH0.SFLy7gU5T1hS4fR5jK8y8f8JvL2fQv4oD3C8gL8q"
+                    example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJ2aWN0b3JvbHVib3JvZGUiLCJpYXQiOjE2ODcyMDA2NDgsImV4cCI6MTY4NzIwNDI0OH0.SFLy7gU5T1hS4fR5jK8y8f8JvL2fQv4oD3C8gL8q
                   message:
                     type: string
-                    example: "Login successful"
+                    example: Login successful
                   user:
                     $ref: '#/components/schemas/UserResponse'
         '401':
@@ -67,12 +66,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-
   /register:
     post:
       summary: Register a new user
-      description:  |
-       Creates a new user account and sends a verification email.
+      description: |
+        Creates a new user account and sends a verification email.
       parameters:
         - name: X-Device-Id
           in: header
@@ -80,7 +78,7 @@ paths:
           required: true
           schema:
             type: string
-            example: "abcdef1234567890"
+            example: abcdef1234567890
       requestBody:
         required: true
         content:
@@ -109,7 +107,7 @@ paths:
               description: The refresh token is set as a secure, HttpOnly cookie.
               schema:
                 type: string
-                example: "refreshToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJ2aWN0b3JvbHVib3JvZGUiLCJpYXQiOjE2ODcyMDA2NDgsImV4cCI6MTY4NzIwNDI0OH0.SFLy7gU5T1hS4fR5jK8y8f8JvL2fQv4oD3C8gL8q; HttpOnly; Secure"
+                example: refreshToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJ2aWN0b3JvbHVib3JvZGUiLCJpYXQiOjE2ODcyMDA2NDgsImV4cCI6MTY4NzIwNDI0OH0.SFLy7gU5T1hS4fR5jK8y8f8JvL2fQv4oD3C8gL8q; HttpOnly; Secure
           content:
             application/json:
               schema:
@@ -117,24 +115,23 @@ paths:
                 properties:
                   message:
                     type: string
-                    example: "User registered successfully."
+                    example: User registered successfully.
                   accessToken:
                     type: string
-                    example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJ2aWN0b3JvbHVib3JvZGUiLCJpYXQiOjE2ODcyMDA2NDgsImV4cCI6MTY4NzIwNDI0OH0.SFLy7gU5T1hS4fR5jK8y8f8JvL2fQv4oD3C8gL8q"
+                    example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJ2aWN0b3JvbHVib3JvZGUiLCJpYXQiOjE2ODcyMDA2NDgsImV4cCI6MTY4NzIwNDI0OH0.SFLy7gU5T1hS4fR5jK8y8f8JvL2fQv4oD3C8gL8q
                   user:
                     $ref: '#/components/schemas/UserResponse'
                   roles:
                     type: array
                     items:
                       type: string
-                      example: "user"
+                      example: user
         '400':
           description: User already exists.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-
   /verify-email:
     get:
       summary: Verify a user's email address
@@ -145,13 +142,13 @@ paths:
           required: true
           schema:
             type: string
-          example: "abcde"
+          example: abcde
         - name: tokenId
           in: query
           required: true
           schema:
             type: string
-          example: "12345"
+          example: '12345'
       responses:
         '200':
           description: Email verified successfully.
@@ -162,14 +159,13 @@ paths:
                 properties:
                   message:
                     type: string
-                    example: "Email successfully verified"
+                    example: Email successfully verified
         '401':
           description: Invalid or expired token.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-
   /resend-verification-email:
     post:
       summary: Resend verification email
@@ -196,10 +192,10 @@ paths:
                 properties:
                   message:
                     type: string
-                    example: "Verification email resent successfully"
+                    example: Verification email resent successfully
                   verificationlink:
                     type: string
-                    example: "http://localhost:3000/api/auth/verify-email?token=abcde&tokenId=12345"
+                    example: http://localhost:3000/api/auth/verify-email?token=abcde&tokenId=12345
         '400':
           description: Email already verified.
           content:
@@ -212,7 +208,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-
   /post:
     post:
       summary: Create a new post
@@ -232,10 +227,10 @@ paths:
               properties:
                 title:
                   type: string
-                  example: "My First Blog Post"
+                  example: My First Blog Post
                 content:
                   type: string
-                  example: "This is the content of my first post."
+                  example: This is the content of my first post.
       responses:
         '201':
           description: Post created successfully.
@@ -249,7 +244,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-
   /change-password:
     post:
       summary: Change user password
@@ -268,10 +262,10 @@ paths:
               properties:
                 currentpassword:
                   type: string
-                  example: "securepassword123"
+                  example: securepassword123
                 newpassword:
                   type: string
-                  example: "NewStrongPassword456"
+                  example: NewStrongPassword456
       responses:
         '200':
           description: Password changed successfully.
@@ -282,14 +276,13 @@ paths:
                 properties:
                   message:
                     type: string
-                    example: "Password changed successfully"
+                    example: Password changed successfully
         '401':
           description: Invalid current password.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-
   /forgot-password:
     post:
       summary: Request a password reset link
@@ -317,11 +310,10 @@ paths:
                 properties:
                   message:
                     type: string
-                    example: "If an account with that email exists, a password reset link has been sent."
+                    example: If an account with that email exists, a password reset link has been sent.
                   resetPasswordLink:
                     type: string
-                    example: "http://localhost:3000/api/auth/reset-password?tokenId=abcde&token=12345"
-
+                    example: http://localhost:3000/api/auth/reset-password?tokenId=abcde&token=12345
   /reset-password:
     post:
       summary: Reset password
@@ -332,13 +324,13 @@ paths:
           required: true
           schema:
             type: string
-          example: "abcde"
+          example: abcde
         - name: token
           in: query
           required: true
           schema:
             type: string
-          example: "12345"
+          example: '12345'
       requestBody:
         required: true
         content:
@@ -350,7 +342,7 @@ paths:
               properties:
                 newpassword:
                   type: string
-                  example: "NewStrongPassword456"
+                  example: NewStrongPassword456
       responses:
         '200':
           description: Password reset successful.
@@ -361,14 +353,13 @@ paths:
                 properties:
                   message:
                     type: string
-                    example: "Password reset successful"
+                    example: Password reset successful
         '401':
           description: Invalid or expired token.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-
   /posts:
     get:
       summary: Retrieve all posts
@@ -386,7 +377,7 @@ paths:
                 properties:
                   message:
                     type: string
-                    example: "Access Granted"
+                    example: Access Granted
                   posts:
                     type: array
                     items:
@@ -397,7 +388,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-
   /posts/{postId}:
     put:
       summary: Update a post
@@ -420,10 +410,10 @@ paths:
               properties:
                 title:
                   type: string
-                  example: "My Updated Blog Post"
+                  example: My Updated Blog Post
                 content:
                   type: string
-                  example: "This is the updated content."
+                  example: This is the updated content.
       responses:
         '200':
           description: Post updated successfully.
@@ -466,7 +456,7 @@ paths:
                 properties:
                   message:
                     type: string
-                    example: "Post deleted successfully."
+                    example: Post deleted successfully.
         '401':
           description: Unauthorized due to invalid token or missing permissions.
           content:
@@ -479,7 +469,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-
   /sessions:
     get:
       summary: Get all active sessions for the current user
@@ -497,7 +486,7 @@ paths:
                 properties:
                   message:
                     type: string
-                    example: "Sessions retrieved successfully"
+                    example: Sessions retrieved successfully
                   sessions:
                     type: array
                     items:
@@ -523,14 +512,13 @@ paths:
                 properties:
                   message:
                     type: string
-                    example: "Logged out from all devices"
+                    example: Logged out from all devices
         '401':
           description: Unauthorized due to invalid token.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-
   /sessions/{jti}:
     delete:
       summary: Log out a specific session
@@ -544,7 +532,7 @@ paths:
           required: true
           schema:
             type: string
-          example: "034c5678-012b-34c5-5d6e-78f90ab123c4"
+          example: 034c5678-012b-34c5-5d6e-78f90ab123c4
       responses:
         '200':
           description: Session deleted successfully.
@@ -555,7 +543,7 @@ paths:
                 properties:
                   message:
                     type: string
-                    example: "Session deleted successfully"
+                    example: Session deleted successfully
         '400':
           description: Missing or invalid JTI.
           content:
@@ -574,7 +562,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-
   /logout:
     delete:
       summary: Log out from the current session
@@ -591,7 +578,7 @@ paths:
                 properties:
                   message:
                     type: string
-                    example: "Logout successful for current session."
+                    example: Logout successful for current session.
         '400':
           description: Invalid token payload for logout.
           content:
@@ -604,7 +591,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-
   /token:
     post:
       summary: Refresh access token
@@ -617,7 +603,7 @@ paths:
           required: true
           schema:
             type: string
-          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
       responses:
         '200':
           description: Tokens refreshed successfully.
@@ -626,7 +612,7 @@ paths:
               description: The new refresh token is set as a secure, HttpOnly cookie.
               schema:
                 type: string
-                example: "refreshToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...; HttpOnly; Secure"
+                example: refreshToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...; HttpOnly; Secure
           content:
             application/json:
               schema:
@@ -634,17 +620,16 @@ paths:
                 properties:
                   accessToken:
                     type: string
-                    example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJ2aWN0b3JvbHVib3JvZGUiLCJpYXQiOjE2ODcyMDA2NDgsImV4cCI6MTY4NzIwNDI0OH0.SFLy7gU5T1hS4fR5jK8y8f8JvL2fQv4oD3C8gL8q"
+                    example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJ2aWN0b3JvbHVib3JvZGUiLCJpYXQiOjE2ODcyMDA2NDgsImV4cCI6MTY4NzIwNDI0OH0.SFLy7gU5T1hS4fR5jK8y8f8JvL2fQv4oD3C8gL8q
                   message:
                     type: string
-                    example: "Tokens refreshed successfully"
+                    example: Tokens refreshed successfully
         '401':
           description: Unauthorized due to invalid or missing refresh token.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-
   /admin/roles:
     get:
       summary: Get all roles
@@ -667,7 +652,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-
   /admin/permissions:
     get:
       summary: Get all permissions
@@ -690,7 +674,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-
   /admin/user-roles:
     post:
       summary: Assign a role to a user
@@ -710,7 +693,7 @@ paths:
               properties:
                 userId:
                   type: string
-                  example: "65e23c7c2518e3a2410a0e70"
+                  example: 65e23c7c2518e3a2410a0e70
                 roleId:
                   type: integer
                   example: 2
@@ -724,7 +707,7 @@ paths:
                 properties:
                   message:
                     type: string
-                    example: "Role assigned successfully."
+                    example: Role assigned successfully.
         '400':
           description: Missing user ID or role ID.
           content:
@@ -737,8 +720,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-
-  /admin/user-roles/{userId}/{roleId}:              
+  /admin/user-roles/{userId}/{roleId}:
     delete:
       summary: Remove a role from a user
       description: |
@@ -768,7 +750,7 @@ paths:
                 properties:
                   message:
                     type: string
-                    example: "Role removed successfully."
+                    example: Role removed successfully.
         '400':
           description: Missing user ID or role ID.
           content:
@@ -787,7 +769,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-
   /admin/role-permissions:
     post:
       summary: Assign a permission to a role
@@ -821,7 +802,7 @@ paths:
                 properties:
                   message:
                     type: string
-                    example: "Permission assigned to role successfully."
+                    example: Permission assigned to role successfully.
         '400':
           description: Missing role ID or permission ID.
           content:
@@ -834,14 +815,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-  /admin/role-permissions/{roleId}/{permissionId}:              
+  /admin/role-permissions/{roleId}/{permissionId}:
     delete:
       summary: Remove a permission from a role
       description: |
         Removes a permission from a specific role. Requires a valid access token and the 'role:permission:remove' permission.
       security:
         - bearerAuth: []
-      parameters: 
+      parameters:
         - name: roleId
           in: path
           description: The ID of the role to delete.
@@ -866,7 +847,7 @@ paths:
                 properties:
                   message:
                     type: string
-                    example: "Permission removed from role successfully."
+                    example: Permission removed from role successfully.
         '400':
           description: Missing role ID or permission ID.
           content:
@@ -885,7 +866,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-
   /health:
     get:
       summary: Check server health
@@ -900,40 +880,38 @@ paths:
                 properties:
                   status:
                     type: string
-                    example: "healthy"
+                    example: healthy
                   uptime:
                     type: number
                     example: 3600
                   message:
                     type: string
-                    example: "Server is up and running"
-
+                    example: Server is up and running
 components:
   securitySchemes:
     bearerAuth:
       type: http
       scheme: bearer
       bearerFormat: JWT
-
   schemas:
     UserResponse:
       type: object
       properties:
         id:
           type: string
-          example: "65e23c7c2518e3a2410a0e70"
+          example: 65e23c7c2518e3a2410a0e70
         email:
           type: string
-          example: "user@example.com"
+          example: user@example.com
         fullname:
           type: string
-          example: "User Name"
+          example: User Name
     Error:
       type: object
       properties:
         error:
           type: string
-          example: "Invalid credentials"
+          example: Invalid credentials
     Post:
       type: object
       properties:
@@ -942,21 +920,21 @@ components:
           example: 1
         title:
           type: string
-          example: "My First Blog Post"
+          example: My First Blog Post
         content:
           type: string
-          example: "This is the content of my first post."
+          example: This is the content of my first post.
         userId:
           type: string
-          example: "65e23c7c2518e3a2410a0e70"
+          example: 65e23c7c2518e3a2410a0e70
         createdAt:
           type: string
           format: date-time
-          example: "2025-08-13T10:00:00.000Z"
+          example: '2025-08-13T10:00:00.000Z'
         updatedAt:
           type: string
           format: date-time
-          example: "2025-08-13T10:00:00.000Z"
+          example: '2025-08-13T10:00:00.000Z'
     PostWithUser:
       type: object
       properties:
@@ -965,53 +943,53 @@ components:
           example: 1
         title:
           type: string
-          example: "My First Blog Post"
+          example: My First Blog Post
         content:
           type: string
-          example: "This is the content of my first post."
+          example: This is the content of my first post.
         userId:
           type: string
-          example: "65e23c7c2518e3a2410a0e70"
+          example: 65e23c7c2518e3a2410a0e70
         createdAt:
           type: string
           format: date-time
-          example: "2025-08-13T10:00:00.000Z"
+          example: '2025-08-13T10:00:00.000Z'
         updatedAt:
           type: string
           format: date-time
-          example: "2025-08-13T10:00:00.000Z"
+          example: '2025-08-13T10:00:00.000Z'
         user:
           type: object
           properties:
             fullname:
               type: string
-              example: "Victor Oluborode"
+              example: Victor Oluborode
             email:
               type: string
-              example: "victor@example.com"
+              example: victor@example.com
     Session:
       type: object
       properties:
         jti:
           type: string
-          example: "034c5678-012b-34c5-5d6e-78f90ab123c4"
+          example: 034c5678-012b-34c5-5d6e-78f90ab123c4
         deviceId:
           type: string
-          example: "abcdef1234567890"
+          example: abcdef1234567890
         ipAddress:
           type: string
-          example: "192.168.1.1"
+          example: 192.168.1.1
         userAgent:
           type: string
-          example: "Mozilla/5.0"
+          example: Mozilla/5.0
         expiresAt:
           type: string
           format: date-time
-          example: "2025-09-13T10:00:00.000Z"
+          example: '2025-09-13T10:00:00.000Z'
         createdAt:
           type: string
           format: date-time
-          example: "2025-08-13T10:00:00.000Z"
+          example: '2025-08-13T10:00:00.000Z'
     Role:
       type: object
       properties:
@@ -1020,7 +998,7 @@ components:
           example: 1
         name:
           type: string
-          example: "user"
+          example: user
     Permission:
       type: object
       properties:
@@ -1029,4 +1007,4 @@ components:
           example: 1
         name:
           type: string
-          example: "post:create"
+          example: post:create
