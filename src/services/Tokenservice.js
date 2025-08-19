@@ -1,10 +1,17 @@
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 const { PrismaClient } = require("@prisma/client");
+const { withAccelerate } = require("@prisma/extension-accelerate");
+const { withOptimize } = require("@prisma/extension-optimize");
+const prisma = new PrismaClient().$extends(
+  withOptimize({
+    apiKey: process.env.OPTIMIZE_API_KEY
+  })
+).$extends(withAccelerate());
 const { addDays } = require("date-fns");
 const { v4: uuidv4 } = require("uuid");
 require("dotenv").config();
-const prisma = new PrismaClient();
+
 
 const createAccessToken = async (user) => {
   const roleNames = user.roles
@@ -28,7 +35,6 @@ const createRefreshToken = async (user, deviceId, ipAddress, userAgent) => {
   const ttlDays = parseInt(process.env.REFRESH_TOKEN_TTL_DAYS || 30);
   const expiresAt = addDays(new Date(), ttlDays);
   const jti = uuidv4();
-  // const deviceId = uuidv4();
   const payload = {
     sub: user.id,
     jti,
@@ -48,6 +54,9 @@ const createRefreshToken = async (user, deviceId, ipAddress, userAgent) => {
       ipAddress: ipAddress,
       userAgent: userAgent
     },
+    select: {
+      id: true
+    }
   });
   return {
     token: refreshToken,

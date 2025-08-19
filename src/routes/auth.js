@@ -15,7 +15,13 @@ const {
 const { sanitizeFields } = require("../utils/sanitization");
 const { authenticateToken } = require("../middleware/auth");
 const { PrismaClient } = require("@prisma/client");
-const prisma = new PrismaClient();
+const { withAccelerate } = require("@prisma/extension-accelerate");
+const { withOptimize } = require("@prisma/extension-optimize");
+const prisma = new PrismaClient().$extends(
+  withOptimize({
+    apiKey: process.env.OPTIMIZE_API_KEY
+  })
+).$extends(withAccelerate());
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const {
@@ -566,22 +572,35 @@ router.post(
     const userAgent = req.headers["user-agent"];
     try {
       const user = await prisma.user.findUnique({
-        where: { email: email },
-        include: {
-          roles: {
-            include: {
-              role: {
-                include: {
-                  permissions: {
-                    include: {
-                      permission: true,
-                    },
-                  },
-                },
-              },
-            },
-          },
+        cacheStrategy: {
+          swr: 60,
+          ttl: 60
         },
+        where: { email: email },
+        select: {
+          id: true,
+          email: true,
+          fullname: true,
+          password: true,
+          roles: {
+            select: {
+              role: {
+                select: {
+                  name: true,
+                  permissions:{
+                    select: {
+                      permission: {
+                        select: {
+                          name: true
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
       });
       if (!user) {
         logger.warn("Login attempt with invalid email", {
