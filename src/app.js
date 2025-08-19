@@ -29,7 +29,7 @@ app.use(
   })
 );
 
-app.use(cookieParser);
+app.use(cookieParser());
 app.use(requestLogger);
 
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
