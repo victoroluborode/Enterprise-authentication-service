@@ -1,7 +1,6 @@
 const bcrypt = require("bcrypt");
 const { createEmailToken } = require("../services/emailTokenService");
-const { PrismaClient } = require("@prisma/client");
-const prisma = new PrismaClient();
+const prisma = require("../config/prismaClient")
 const { sendEmail } = require("../utils/emailservice");
 const verificationEmailTemplate =
   require("../utils/template").verificationEmailTemplate;

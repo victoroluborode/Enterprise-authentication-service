@@ -42,7 +42,11 @@ app.get("/api/auth/health", (req, res) => {
   })
 })
 
-app.use(globalRateLimiter);
+app.use((req, res, next) => {
+  if (req.path.startsWith("/api/auth")) return next();
+  globalRateLimiter(req, res, next);
+});
+
 app.use("/api/auth/", Routes);
 app.use("/api/auth/", TestEmailRoute);
 app.use("/api/auth/", AdminRoutes);

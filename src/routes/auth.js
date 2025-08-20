@@ -14,14 +14,7 @@ const {
 } = require("../utils/validation");
 const { sanitizeFields } = require("../utils/sanitization");
 const { authenticateToken } = require("../middleware/auth");
-const { PrismaClient } = require("@prisma/client");
-const { withAccelerate } = require("@prisma/extension-accelerate");
-const { withOptimize } = require("@prisma/extension-optimize");
-const prisma = new PrismaClient().$extends(
-  withOptimize({
-    apiKey: process.env.OPTIMIZE_API_KEY
-  })
-).$extends(withAccelerate());
+const prisma = require("../config/prismaClient");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const {
@@ -59,12 +52,12 @@ const logger = require("../utils/logger");
 
 router.post(
   "/register",
+  registerRateLimiter,
   registerValidation,
   sanitizeFields(["email", "password", "fullname"]),
-  registerRateLimiter,
   async (req, res, next) => {
     const { email, password, fullname } = req.body;
-    const deviceId = req.headers['x-device-id'];
+    const deviceId = req.headers["x-device-id"];
     const ipAddress = req.ip;
     const userAgent = req.headers["user-agent"];
 
@@ -80,11 +73,7 @@ router.post(
         return next(new AppError("User already exists", 400));
       }
 
-      const { userWithRoles } = await registerUser(
-        email,
-        password,
-        fullname
-      );
+      const { userWithRoles } = await registerUser(email, password, fullname);
 
       const userRoles = userWithRoles.roles.map(
         (userRole) => userRole.role.name
@@ -98,20 +87,18 @@ router.post(
         userAgent
       );
 
-      
-
       const userResponse = {
         id: userWithRoles.id,
         email: userWithRoles.email,
         fullname: userWithRoles.fullname,
       };
 
-      res.cookie('refreshToken', refreshToken.token, {
+      res.cookie("refreshToken", refreshToken.token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
-        expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
-      })
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      });
 
       res.status(201).json({
         message: `User registered successfully. Please check your email for a verification link`,
@@ -200,10 +187,10 @@ router.post(
 
 router.post(
   "/post",
+  createPostRateLimiter,
   authenticateToken,
   hasPermissions(["post:create"]),
   requireEmailVerification,
-  createPostRateLimiter,
   postValidation,
   sanitizeFields(["title", "content"]),
   async (req, res, next) => {
@@ -235,8 +222,8 @@ router.post(
 
 router.post(
   "/change-password",
-  authenticateToken,
   changePasswordLimiter,
+  authenticateToken,
   changePasswordValidation,
   async (req, res, next) => {
     try {
@@ -416,9 +403,10 @@ router.post(
 
 router.get(
   "/posts",
+  postsRateLimiter,
   authenticateToken,
   hasPermissions(["post:read"]),
-  postsRateLimiter,
+
   async (req, res, next) => {
     try {
       const posts = await prisma.post.findMany({
@@ -523,8 +511,9 @@ router.delete(
 
 router.get(
   "/sessions",
-  authenticateToken,
   sessionsRateLimiter,
+  authenticateToken,
+
   async (req, res, next) => {
     try {
       const userId = req.user.id;
@@ -562,19 +551,20 @@ router.get(
 
 router.post(
   "/login",
+  loginRateLimiter,
   loginValidation,
   sanitizeFields(["email", "password", "deviceId"]),
-  loginRateLimiter,
+
   async (req, res, next) => {
     const { email, password } = req.body;
-    const deviceId = req.headers['x-device-id']
+    const deviceId = req.headers["x-device-id"];
     const ipAddress = req.ip;
     const userAgent = req.headers["user-agent"];
     try {
       const user = await prisma.user.findUnique({
         cacheStrategy: {
           swr: 60,
-          ttl: 60
+          ttl: 30,
         },
         where: { email: email },
         select: {
@@ -587,20 +577,20 @@ router.post(
               role: {
                 select: {
                   name: true,
-                  permissions:{
+                  permissions: {
                     select: {
                       permission: {
                         select: {
-                          name: true
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
+                          name: true,
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
       });
       if (!user) {
         logger.warn("Login attempt with invalid email", {
@@ -628,12 +618,12 @@ router.post(
         userAgent
       );
 
-      res.cookie('refreshToken', refreshToken, {
+      res.cookie("refreshToken", refreshToken, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
-        expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
-      })
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      });
 
       const userResponse = {
         id: user.id,
@@ -659,8 +649,9 @@ router.post(
 
 router.post(
   "/token",
-  verifyRefreshTokens,
   tokenRateLimiter,
+  verifyRefreshTokens,
+
   async (req, res, next) => {
     const jtiOldToken = req.jtiOldToken;
     const userId = req.user.id;
@@ -695,8 +686,6 @@ router.post(
         userAgent
       );
 
-
-
       await prisma.refreshToken.delete({
         where: {
           userId: userId,
@@ -704,12 +693,12 @@ router.post(
         },
       });
 
-      res.cookie('refreshToken', refreshToken, {
+      res.cookie("refreshToken", refreshToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         sameSite: "strict",
         expires: refreshToken.expiresAt,
-      })
+      });
 
       res.status(200).json({
         accesstoken: accessToken,
@@ -728,8 +717,8 @@ router.post(
 
 router.delete(
   "/logout",
-  authenticateToken,
   logoutSpecificRateLimiter,
+  authenticateToken,
   async (req, res, next) => {
     const userId = req.user.id;
     const jti = req.user.jti;
@@ -766,8 +755,8 @@ router.delete(
 
 router.delete(
   "/sessions",
-  authenticateToken,
   logoutAllRateLimiter,
+  authenticateToken,
   async (req, res, next) => {
     const userId = req.user.id;
     try {
@@ -793,8 +782,8 @@ router.delete(
 
 router.delete(
   "/sessions/:jti",
-  authenticateToken,
   logoutSpecificRateLimiter,
+  authenticateToken,
   async (req, res, next) => {
     const jti = req.params.jti;
     const userId = req.user.id;

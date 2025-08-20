@@ -1,22 +1,30 @@
-const rateLimit = require('express-rate-limit');
-const { RedisStore } = require('rate-limit-redis');
-const redisClient = require('../config/redisClient');
-const { Command } = require('ioredis');
+const {rateLimit, ipKeyGenerator} = require("express-rate-limit");
+const RedisStore = require("rate-limit-redis");
+const redisClient = require("../config/redisClient");
 
+// Helper function to safely extract IP address
+const getClientIP = (req) => {
+  const forwarded = req.headers["x-forwarded-for"];
+  const realIP = req.headers["x-real-ip"];
 
+  if (forwarded) return forwarded.split(",")[0].trim();
+  if (realIP) return realIP;
+  if (req.ip)
+    return typeof req.ip === "string" ? req.ip : JSON.stringify(req.ip);
+  return (
+    req.connection?.remoteAddress || req.socket?.remoteAddress || "127.0.0.1"
+  );
+};
 
-const createLimiter = ({
-  windowMs,
-  max,
-  message,
-  type,
-  keyGenerator,
-  prefix = "ratelimit"
-}) => {
-  const storeInstance = new RedisStore({
-    sendCommand: (command, ...args) => redisClient[command.toLowerCase()](...args),
-    prefix: prefix 
-  });
+const createLimiter = (options) => {
+  const {
+    windowMs,
+    max,
+    message,
+    type,
+    keyGen,
+    prefix = "ratelimit",
+  } = options;
 
   return rateLimit({
     windowMs,
@@ -24,49 +32,38 @@ const createLimiter = ({
     message,
     statusCode: 429,
     headers: true,
-    store: storeInstance,
-    keyGenerator: keyGenerator || rateLimit.ipKeyGenerator,
-    handler: (req, res, next, options) => {
-      let logMessage = `RATE LIMIT HIT: Type: ${type}`;
-      if (type === "User-based") {
-        const userId = req.user ? req.user.id : "N/A";
-        logMessage += `, UserID: ${userId}`;
-      }
-      logMessage += `, IP: ${req.ip}, Path: ${req.path}, Method: ${req.method}, Message: ${options.message}`;
-      console.warn(logMessage);
-      return res.status(options.statusCode).json({
-        message: options.message,
-      });
+    store: new RedisStore({ client: redisClient, prefix }),
+    keyGenerator: (req) => {
+      const key = keyGen ? keyGen(req) : getClientIP(req);
+      const finalKey = String(key);
+      console.log(`[RateLimiter] Key for ${prefix}: ${finalKey}`);
+      return finalKey;
+    },
+    skipFailedRequests: true,
+    validate: { singleCount: false }, // <-- disables ERR_ERL_DOUBLE_COUNT
+    onLimitReached: (req) => {
+      console.warn(
+        `RATE LIMIT HIT: ${type}, IP: ${getClientIP(req)}, Path: ${req.path}`
+      );
     },
   });
 };
 
-
+// ----- Limiters -----
 const globalRateLimiter = createLimiter({
   windowMs: 15 * 60 * 1000,
   max: 100,
   message: "Too many requests from this IP, please try again after 15 minutes.",
   type: "IP-based",
-  prefix: "global_rate_limit_",
+  prefix: "global",
 });
 
 const loginRateLimiter = createLimiter({
   windowMs: 5 * 60 * 1000,
   max: 20,
-  message:
-    "Too many login attempts from this IP, please try again after 5 minutes.",
+  message: "Too many login attempts, please try again after 5 minutes.",
   type: "IP-based",
-  prefix: "login_rate_limit_",
-});
-
-const tokenRateLimiter = createLimiter({
-  windowMs: 1 * 60 * 1000,
-  max: 10,
-  message: "Too many token refresh requests, please try again after 1 minute.",
-  type: "User-based",
-  keyGenerator: (req) =>
-    req.user ? `token_refresh_${req.user.id}` : rateLimit.ipKeyGenerator(req),
-  prefix: "token_rate_limit_",
+  prefix: "login",
 });
 
 const registerRateLimiter = createLimiter({
@@ -75,7 +72,16 @@ const registerRateLimiter = createLimiter({
   message:
     "Too many registration attempts from this IP, please try again after 15 minutes.",
   type: "IP-based",
-  prefix: "register_rate_limit_",
+  prefix: "register",
+});
+
+const tokenRateLimiter = createLimiter({
+  windowMs: 1 * 60 * 1000,
+  max: 10,
+  message: "Too many token refresh requests, please try again after 1 minute.",
+  type: "User-based",
+  prefix: "token",
+  keyGen: (req) => (req.user ? `user_${req.user.id}` : getClientIP(req)),
 });
 
 const postsRateLimiter = createLimiter({
@@ -83,9 +89,8 @@ const postsRateLimiter = createLimiter({
   max: 50,
   message: "Too many post requests, please try again after 5 minutes.",
   type: "User-based",
-  keyGenerator: (req) =>
-    req.user ? `posts_retrieval_${req.user.id}` : rateLimit.ipKeyGenerator(req),
-  prefix: "posts_rate_limit_",
+  prefix: "posts",
+  keyGen: (req) => (req.user ? `user_${req.user.id}` : getClientIP(req)),
 });
 
 const createPostRateLimiter = createLimiter({
@@ -93,22 +98,17 @@ const createPostRateLimiter = createLimiter({
   max: 5,
   message: "Too many posts created. Please try again later.",
   type: "User-based",
-  keyGenerator: (req) => 
-    req.user ? `create_post_${req.user.id}` : rateLimit.ipKeyGenerator(req),
-  prefix: "create_post_rate_limit_",
+  prefix: "create_post",
+  keyGen: (req) => (req.user ? `user_${req.user.id}` : getClientIP(req)),
 });
-
 
 const sessionsRateLimiter = createLimiter({
   windowMs: 1 * 60 * 1000,
   max: 20,
   message: "Too many session requests, please try again after 1 minute.",
   type: "User-based",
-  keyGenerator: (req) =>
-    req.user
-      ? `sessions_retrieval_${req.user.id}`
-      : rateLimit.ipKeyGenerator(req),
-  prefix: "sessions_rate_limit_",
+  prefix: "sessions",
+  keyGen: (req) => (req.user ? `user_${req.user.id}` : getClientIP(req)),
 });
 
 const logoutAllRateLimiter = createLimiter({
@@ -116,9 +116,8 @@ const logoutAllRateLimiter = createLimiter({
   max: 3,
   message: "Too many logout all requests, please try again after 5 minutes.",
   type: "User-based",
-  keyGenerator: (req) =>
-    req.user ? `logout_all_${req.user.id}` : rateLimit.ipKeyGenerator(req),
-  prefix: "logout_all_rate_limit_",
+  prefix: "logout_all",
+  keyGen: (req) => (req.user ? `user_${req.user.id}` : getClientIP(req)),
 });
 
 const logoutSpecificRateLimiter = createLimiter({
@@ -127,48 +126,40 @@ const logoutSpecificRateLimiter = createLimiter({
   message:
     "Too many specific session logout requests, please try again after 5 minutes.",
   type: "User-based",
-  keyGenerator: (req) =>
-    req.user ? `logout_specific_${req.user.id}` : rateLimit.ipKeyGenerator(req),
-  prefix: "logout_specific_rate_limit_",
+  prefix: "logout_specific",
+  keyGen: (req) => (req.user ? `user_${req.user.id}` : getClientIP(req)),
 });
 
 const resendVerificationLimiter = createLimiter({
-  windowMs: 10 * 60 * 1000, 
-  max: 2, 
+  windowMs: 10 * 60 * 1000,
+  max: 2,
   message:
     "Too many resend verification requests. Please try again after 10 minutes.",
   type: "User-based",
-  keyGenerator: (req) =>
-    req.body.email
-      ? `resend_verification_${req.body.email}`
-      : rateLimit.ipKeyGenerator(req),
-  prefix: "resend_verification_rate_limit_",
+  prefix: "resend_verification",
+  keyGen: (req) =>
+    req.body?.email ? `email_${req.body.email}` : getClientIP(req),
 });
 
 const changePasswordLimiter = createLimiter({
-  windowMs: 30 * 60 * 1000, 
-  max: 3, 
+  windowMs: 30 * 60 * 1000,
+  max: 3,
   message:
     "Too many password change attempts. Please try again after 30 minutes.",
   type: "User-based",
-  keyGenerator: (req) =>
-    req.user?.sub
-      ? `change_password_${req.user.sub}`
-      : rateLimit.ipKeyGenerator(req), 
-  prefix: "change_password_rate_limit_",
+  prefix: "change_password",
+  keyGen: (req) => (req.user?.sub ? `user_${req.user.sub}` : getClientIP(req)),
 });
 
 const forgotPasswordLimiter = createLimiter({
-  windowMs: 15 * 60 * 1000, // 15 minutes
+  windowMs: 15 * 60 * 1000,
   max: 10,
   message:
     "Too many password reset requests. Please try again after 15 minutes.",
   type: "User-based",
-  keyGenerator: (req) =>
-    req.body.email
-      ? `forgot_password_${req.body.email}`
-      : rateLimit.ipKeyGenerator(req),
-  prefix: "forgot_password_rate_limit_",
+  prefix: "forgot_password",
+  keyGen: (req) =>
+    req.body?.email ? `email_${req.body.email}` : getClientIP(req),
 });
 
 module.exports = {

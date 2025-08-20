@@ -1,13 +1,6 @@
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
-const { PrismaClient } = require("@prisma/client");
-const { withAccelerate } = require("@prisma/extension-accelerate");
-const { withOptimize } = require("@prisma/extension-optimize");
-const prisma = new PrismaClient().$extends(
-  withOptimize({
-    apiKey: process.env.OPTIMIZE_API_KEY
-  })
-).$extends(withAccelerate());
+const prisma = require("../config/prismaClient")
 const { addDays } = require("date-fns");
 const { v4: uuidv4 } = require("uuid");
 require("dotenv").config();

@@ -1,7 +1,6 @@
 const bcrypt = require("bcrypt");
 const crypto = require("crypto");
-const { PrismaClient } = require("@prisma/client");
-const prisma = new PrismaClient();
+const prisma = require("../config/prismaClient")
 const {v4: uuidv4} = require('uuid')
 
 const createEmailToken = async (userId) => {
