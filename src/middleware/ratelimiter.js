@@ -1,4 +1,5 @@
-const {rateLimit, ipKeyGenerator} = require("express-rate-limit");
+// Fixed middleware/ratelimiter.js
+const { rateLimit } = require("express-rate-limit");
 const RedisStore = require("rate-limit-redis");
 const redisClient = require("../config/redisClient");
 
@@ -32,7 +33,11 @@ const createLimiter = (options) => {
     message,
     statusCode: 429,
     headers: true,
-    store: new RedisStore({ client: redisClient, prefix }),
+    store: new RedisStore({
+      client: redisClient,
+      prefix: `${prefix}:`, // Add colon for better key separation
+      sendCommand: (...args) => redisClient.call(...args), // Ensure proper Redis command execution
+    }),
     keyGenerator: (req) => {
       const key = keyGen ? keyGen(req) : getClientIP(req);
       const finalKey = String(key);
@@ -40,7 +45,16 @@ const createLimiter = (options) => {
       return finalKey;
     },
     skipFailedRequests: true,
-    validate: { singleCount: false }, // <-- disables ERR_ERL_DOUBLE_COUNT
+    skipSuccessfulRequests: false,
+    // CRITICAL FIX: Disable validation that causes double counting
+    validate: {
+      trustProxy: false,
+      xForwardedForLimit: 1,
+      singleCount: false, // This prevents ERR_ERL_DOUBLE_COUNT
+    },
+    // Add standardHeaders for better client handling
+    standardHeaders: true,
+    legacyHeaders: false,
     onLimitReached: (req) => {
       console.warn(
         `RATE LIMIT HIT: ${type}, IP: ${getClientIP(req)}, Path: ${req.path}`
@@ -148,7 +162,7 @@ const changePasswordLimiter = createLimiter({
     "Too many password change attempts. Please try again after 30 minutes.",
   type: "User-based",
   prefix: "change_password",
-  keyGen: (req) => (req.user?.sub ? `user_${req.user.sub}` : getClientIP(req)),
+  keyGen: (req) => (req.user?.id ? `user_${req.user.id}` : getClientIP(req)), // Fixed: use req.user.id instead of req.user.sub
 });
 
 const forgotPasswordLimiter = createLimiter({
