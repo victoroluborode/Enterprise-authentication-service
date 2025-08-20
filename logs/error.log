@@ -22,3 +22,7 @@
 {"duration":"776ms","ip":"::ffff:127.0.0.1","label":"src/utils/logger.js","level":"error","message":"Request completed","method":"POST","status":500,"timestamp":"2025-08-18 15:06:25","url":"/api/auth/login"}
 {"duration":"11ms","ip":"::ffff:127.0.0.1","label":"src/utils/logger.js","level":"error","message":"Request completed","method":"POST","status":403,"timestamp":"2025-08-20 11:44:57","url":"/api/auth/post"}
 {"duration":"2ms","ip":"::ffff:127.0.0.1","label":"src/utils/logger.js","level":"error","message":"Request completed","method":"POST","status":403,"timestamp":"2025-08-20 11:45:12","url":"/api/auth/token"}
+{"duration":"30ms","ip":"::ffff:127.0.0.1","label":"src/utils/logger.js","level":"error","message":"Request completed","method":"POST","status":400,"timestamp":"2025-08-20 13:41:06","url":"/api/auth/register"}
+{"duration":"36ms","ip":"::ffff:127.0.0.1","label":"src/utils/logger.js","level":"error","message":"Request completed","method":"POST","status":400,"timestamp":"2025-08-20 13:42:11","url":"/api/auth/register"}
+{"duration":"24ms","ip":"::ffff:127.0.0.1","label":"src/utils/logger.js","level":"error","message":"Request completed","method":"POST","status":400,"timestamp":"2025-08-20 13:45:21","url":"/api/auth/register"}
+{"duration":"3ms","ip":"::ffff:127.0.0.1","label":"src/utils/logger.js","level":"error","message":"Request completed","method":"POST","status":400,"timestamp":"2025-08-20 13:46:54","url":"/api/auth/register"}

@@ -66,3 +66,25 @@
 {"duration":"1373ms","ip":"::ffff:127.0.0.1","label":"src/utils/logger.js","level":"info","message":"Request completed","method":"POST","status":200,"timestamp":"2025-08-20 12:29:58","url":"/api/auth/login"}
 {"deviceId":"364445c1-fe6a-41d2-a997-5e1749d96e9b","label":"src/utils/logger.js","level":"info","message":"User logged in successfully","timestamp":"2025-08-20 12:37:00","userId":2}
 {"duration":"1312ms","ip":"::ffff:127.0.0.1","label":"src/utils/logger.js","level":"info","message":"Request completed","method":"POST","status":200,"timestamp":"2025-08-20 12:37:00","url":"/api/auth/login"}
+{"deviceId":"364445c1-fe6a-41d2-a997-5e1749d96e9b","label":"src/utils/logger.js","level":"info","message":"User logged in successfully","timestamp":"2025-08-20 12:59:21","userId":2}
+{"duration":"3739ms","ip":"::ffff:127.0.0.1","label":"src/utils/logger.js","level":"info","message":"Request completed","method":"POST","status":200,"timestamp":"2025-08-20 12:59:21","url":"/api/auth/login"}
+{"deviceId":"364445c1-fe6a-41d2-a997-5e1749d96e9b","label":"src/utils/logger.js","level":"info","message":"User logged in successfully","timestamp":"2025-08-20 13:11:08","userId":2}
+{"duration":"3418ms","ip":"::ffff:127.0.0.1","label":"src/utils/logger.js","level":"info","message":"Request completed","method":"POST","status":200,"timestamp":"2025-08-20 13:11:08","url":"/api/auth/login"}
+{"deviceId":"364445c1-fe6a-41d2-a997-5e1749d96e9b","label":"src/utils/logger.js","level":"info","message":"User logged in successfully","timestamp":"2025-08-20 13:17:29","userId":2}
+{"duration":"2135ms","ip":"::ffff:127.0.0.1","label":"src/utils/logger.js","level":"info","message":"Request completed","method":"POST","status":200,"timestamp":"2025-08-20 13:17:29","url":"/api/auth/login"}
+{"deviceId":"364445c1-fe6a-41d2-a997-5e1749d96e9b","label":"src/utils/logger.js","level":"info","message":"User logged in successfully","timestamp":"2025-08-20 13:19:51","userId":2}
+{"duration":"1708ms","ip":"::ffff:127.0.0.1","label":"src/utils/logger.js","level":"info","message":"Request completed","method":"POST","status":200,"timestamp":"2025-08-20 13:19:51","url":"/api/auth/login"}
+{"deviceId":"364445c1-fe6a-41d2-a997-5e1749d96e9b","label":"src/utils/logger.js","level":"info","message":"User logged in successfully","timestamp":"2025-08-20 13:24:11","userId":2}
+{"duration":"1784ms","ip":"::ffff:127.0.0.1","label":"src/utils/logger.js","level":"info","message":"Request completed","method":"POST","status":200,"timestamp":"2025-08-20 13:24:11","url":"/api/auth/login"}
+{"deviceId":"364445c1-fe6a-41d2-a997-5e1749d96e9b","label":"src/utils/logger.js","level":"info","message":"User logged in successfully","timestamp":"2025-08-20 13:36:25","userId":2}
+{"duration":"3084ms","ip":"::ffff:127.0.0.1","label":"src/utils/logger.js","level":"info","message":"Request completed","method":"POST","status":200,"timestamp":"2025-08-20 13:36:25","url":"/api/auth/login"}
+{"deviceId":"364445c1-fe6a-41d2-a997-5e1749d96e9b","label":"src/utils/logger.js","level":"info","message":"User logged in successfully","timestamp":"2025-08-20 13:38:15","userId":2}
+{"duration":"30218ms","ip":"::ffff:127.0.0.1","label":"src/utils/logger.js","level":"info","message":"Request completed","method":"POST","status":200,"timestamp":"2025-08-20 13:38:15","url":"/api/auth/login"}
+{"duration":"30ms","ip":"::ffff:127.0.0.1","label":"src/utils/logger.js","level":"error","message":"Request completed","method":"POST","status":400,"timestamp":"2025-08-20 13:41:06","url":"/api/auth/register"}
+{"duration":"36ms","ip":"::ffff:127.0.0.1","label":"src/utils/logger.js","level":"error","message":"Request completed","method":"POST","status":400,"timestamp":"2025-08-20 13:42:11","url":"/api/auth/register"}
+{"deviceId":"364445c1-fe6a-41d2-a997-5e1749d96e9b","label":"src/utils/logger.js","level":"info","message":"User logged in successfully","timestamp":"2025-08-20 13:42:49","userId":2}
+{"duration":"2207ms","ip":"::ffff:127.0.0.1","label":"src/utils/logger.js","level":"info","message":"Request completed","method":"POST","status":200,"timestamp":"2025-08-20 13:42:49","url":"/api/auth/login"}
+{"deviceId":"364445c1-fe6a-41d2-a997-5e1749d96e9b","label":"src/utils/logger.js","level":"info","message":"User logged in successfully","timestamp":"2025-08-20 13:43:38","userId":2}
+{"duration":"903ms","ip":"::ffff:127.0.0.1","label":"src/utils/logger.js","level":"info","message":"Request completed","method":"POST","status":200,"timestamp":"2025-08-20 13:43:38","url":"/api/auth/login"}
+{"duration":"24ms","ip":"::ffff:127.0.0.1","label":"src/utils/logger.js","level":"error","message":"Request completed","method":"POST","status":400,"timestamp":"2025-08-20 13:45:21","url":"/api/auth/register"}
+{"duration":"3ms","ip":"::ffff:127.0.0.1","label":"src/utils/logger.js","level":"error","message":"Request completed","method":"POST","status":400,"timestamp":"2025-08-20 13:46:54","url":"/api/auth/register"}
