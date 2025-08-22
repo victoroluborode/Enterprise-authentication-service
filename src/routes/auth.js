@@ -65,7 +65,11 @@ router.post(
 
     try {
       const startFind = process.hrtime.bigint();
-      const existingUser = await prisma.user.findUnique({ where: { email } });
+      const existingUser = await prisma.user.findUnique({
+        where: { email },
+        cache: true,
+      });
+
       console.log(
         "findUnique:",
         (Number(process.hrtime.bigint() - startFind) / 1_000_000).toFixed(2),
@@ -160,7 +164,6 @@ router.post(
     }
   }
 );
-
 
 // ------------------------- EMAIL VERIFICATION -------------------------
 router.get("/verify-email", verifyEmailToken, async (req, res, next) => {
@@ -342,12 +345,10 @@ router.post(
         expires: refreshToken.expiresAt,
       });
 
-      res
-        .status(200)
-        .json({
-          accesstoken: accessToken,
-          message: "Tokens refreshed successfully",
-        });
+      res.status(200).json({
+        accesstoken: accessToken,
+        message: "Tokens refreshed successfully",
+      });
       logger.info("Tokens refreshed successfully", { userId, deviceId });
     } catch (err) {
       logger.error("Token refresh failed", err);

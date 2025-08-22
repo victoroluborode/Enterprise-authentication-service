@@ -24,7 +24,7 @@ if (process.env.REDIS_HOST) {
         ttl: 60,
         stale: 30,
       },
-      type: "JSON",
+      type: "STRING",
       cacheKey: {
         case: CacheCase.SNAKE_CASE,
         delimiter: ":",
