@@ -7,7 +7,7 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model user {
+model User {
   id                      Int                    @id @default(autoincrement())
   email                   String                 @unique
   emailVerified           Boolean                @default(false)
@@ -15,10 +15,10 @@ model user {
   fullname                String?
   tokenVersion            Int                    @default(0)
   roles                   UserRole[]
-  refreshTokens           refreshToken[]
+  refreshTokens           RefreshToken[]
   posts                   Post[]
-  emailverificationtokens EmailVerificationToken[]
-  passwordresettokens     PasswordResetToken[]
+  emailVerificationTokens EmailVerificationToken[]
+  passwordResetTokens     PasswordResetToken[]
 }
 
 model Post {
@@ -28,13 +28,13 @@ model Post {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   userId    Int
-  user      user     @relation(fields: [userId], references: [id])
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model EmailVerificationToken {
   id          Int      @id @default(autoincrement())
   userId      Int
-  user        user     @relation(fields: [userId], references: [id])
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   tokenId     String   @unique
   token       String   @unique
   expiresAt   DateTime
@@ -44,13 +44,15 @@ model EmailVerificationToken {
 }
 
 model PasswordResetToken {
-  id          Int      @default(autoincrement())
+  id          Int      @id @default(autoincrement())
   userId      Int
-  user        user     @relation(fields: [userId], references: [id])
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   tokenId     String   @unique
   token       String   @unique
   expiresAt   DateTime
   createdAt   DateTime @default(now())
+
+  @@index([userId])
 }
 
 model Role {
@@ -64,9 +66,9 @@ model Role {
 
 model UserRole {
   userId     Int
-  user       user     @relation(fields: [userId], references: [id])
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   roleId     Int
-  role       Role     @relation(fields: [roleId], references: [id])
+  role       Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
   assignedAt DateTime @default(now())
 
   @@id([userId, roleId])
@@ -83,17 +85,17 @@ model Permission {
 
 model RolePermission {
   roleId       Int
-  role         Role         @relation(fields: [roleId], references: [id])
+  role         Role         @relation(fields: [roleId], references: [id], onDelete: Cascade)
   permissionId Int
-  permission   Permission   @relation(fields: [permissionId], references: [id])
+  permission   Permission   @relation(fields: [permissionId], references: [id], onDelete: Cascade)
   assignedAt   DateTime     @default(now())
 
   @@id([roleId, permissionId])
 }
 
-model refreshToken {
+model RefreshToken {
   id        Int      @id @default(autoincrement())
-  user      user     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId    Int
   jti       String   @unique
   deviceId  String   @default(uuid())
