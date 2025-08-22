@@ -1,6 +1,6 @@
 // Fixed middleware/ratelimiter.js
 const { rateLimit } = require("express-rate-limit");
-const RedisStore = require("rate-limit-redis");
+const RedisStore = require("rate-limit-redis").default;
 const redisClient = require("../config/redisClient");
 
 // Helper function to safely extract IP address
@@ -55,10 +55,11 @@ const createLimiter = (options) => {
     // Add standardHeaders for better client handling
     standardHeaders: true,
     legacyHeaders: false,
-    onLimitReached: (req) => {
+    handler: (req, res, next, options) => {
       console.warn(
         `RATE LIMIT HIT: ${type}, IP: ${getClientIP(req)}, Path: ${req.path}`
       );
+      res.status(options.statusCode).send(options.message);
     },
   });
 };

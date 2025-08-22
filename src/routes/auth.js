@@ -57,39 +57,68 @@ router.post(
   sanitizeFields(["email", "password", "fullname"]),
   registerRateLimiter,
   async (req, res, next) => {
+    const startTotal = process.hrtime.bigint(); // measure total
     const { email, password, fullname } = req.body;
     const deviceId = req.headers["x-device-id"];
     const ipAddress = req.ip;
     const userAgent = req.headers["user-agent"];
 
     try {
+      const startFind = process.hrtime.bigint();
       const existingUser = await prisma.user.findUnique({ where: { email } });
+      console.log(
+        "findUnique:",
+        (Number(process.hrtime.bigint() - startFind) / 1_000_000).toFixed(2),
+        "ms"
+      );
 
       if (existingUser) {
         logger.warn("Registration attempt with existing email", { email });
         return next(new AppError("User already exists", 400));
       }
 
+      const startRegister = process.hrtime.bigint();
       const { userWithRoles } = await registerUser(email, password, fullname);
+      console.log(
+        "registerUser:",
+        (Number(process.hrtime.bigint() - startRegister) / 1_000_000).toFixed(
+          2
+        ),
+        "ms"
+      );
 
+      const startRoles = process.hrtime.bigint();
       const userRoles = userWithRoles.roles.map(
         (userRole) => userRole.role.name
       );
+      console.log(
+        "roles mapping:",
+        (Number(process.hrtime.bigint() - startRoles) / 1_000_000).toFixed(2),
+        "ms"
+      );
 
+      const startAccess = process.hrtime.bigint();
       const accessToken = await createAccessToken(userWithRoles);
+      console.log(
+        "createAccessToken:",
+        (Number(process.hrtime.bigint() - startAccess) / 1_000_000).toFixed(2),
+        "ms"
+      );
+
+      const startRefresh = process.hrtime.bigint();
       const refreshToken = await createRefreshToken(
         userWithRoles,
         deviceId,
         ipAddress,
         userAgent
       );
+      console.log(
+        "createRefreshToken:",
+        (Number(process.hrtime.bigint() - startRefresh) / 1_000_000).toFixed(2),
+        "ms"
+      );
 
-      const userResponse = {
-        id: userWithRoles.id,
-        email: userWithRoles.email,
-        fullname: userWithRoles.fullname,
-      };
-
+      const startResponse = process.hrtime.bigint();
       res.cookie("refreshToken", refreshToken.token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
@@ -100,9 +129,26 @@ router.post(
       res.status(201).json({
         message: `User registered successfully. Please check your email for a verification link`,
         accessToken,
-        user: userResponse,
+        user: {
+          id: userWithRoles.id,
+          email: userWithRoles.email,
+          fullname: userWithRoles.fullname,
+        },
         roles: userRoles,
       });
+      console.log(
+        "response send:",
+        (Number(process.hrtime.bigint() - startResponse) / 1_000_000).toFixed(
+          2
+        ),
+        "ms"
+      );
+
+      console.log(
+        "TOTAL register:",
+        (Number(process.hrtime.bigint() - startTotal) / 1_000_000).toFixed(2),
+        "ms"
+      );
 
       logger.info("User registered successfully", {
         userId: userWithRoles.id,
@@ -114,6 +160,7 @@ router.post(
     }
   }
 );
+
 
 // ------------------------- EMAIL VERIFICATION -------------------------
 router.get("/verify-email", verifyEmailToken, async (req, res, next) => {

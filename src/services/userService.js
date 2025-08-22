@@ -1,41 +1,49 @@
 const bcrypt = require("bcrypt");
 const { createEmailToken } = require("../services/emailTokenService");
-const prisma = require("../config/prismaClient")
+const prisma = require("../config/prismaClient");
 const { sendEmail } = require("../utils/emailservice");
 const verificationEmailTemplate =
   require("../utils/template").verificationEmailTemplate;
 
 async function registerUser(email, password, fullname) {
   try {
+    console.time("Total registerUser");
+
+    console.time("bcrypt.hash");
     const saltRounds = 10;
     const userPassword = await bcrypt.hash(password, saltRounds);
+    console.timeEnd("bcrypt.hash");
 
+    console.time("prisma.user.create");
     const newUser = await prisma.user.create({
       data: {
-        email: email,
+        email,
         password: userPassword,
-        fullname: fullname,
+        fullname,
       },
     });
+    console.timeEnd("prisma.user.create");
 
+    console.time("prisma.role.findUnique");
     const defaultRole = await prisma.role.findUnique({
       where: { name: "USER" },
     });
+    console.timeEnd("prisma.role.findUnique");
 
     if (!defaultRole) {
-      console.error(
-        "Error: Default 'USER' role not found in database. Please seed your roles."
-      );
       throw new Error("Default role not found. System misconfiguration.");
     }
 
+    console.time("prisma.userRole.create");
     await prisma.userRole.create({
       data: {
         userId: newUser.id,
         roleId: defaultRole.id,
       },
     });
+    console.timeEnd("prisma.userRole.create");
 
+    console.time("prisma.user.findUnique (with roles + permissions)");
     const userWithRoles = await prisma.user.findUnique({
       where: { id: newUser.id },
       include: {
@@ -45,9 +53,7 @@ async function registerUser(email, password, fullname) {
               include: {
                 permissions: {
                   include: {
-                    permission: {
-                      select: { name: true },
-                    },
+                    permission: { select: { name: true } },
                   },
                 },
               },
@@ -56,21 +62,28 @@ async function registerUser(email, password, fullname) {
         },
       },
     });
+    console.timeEnd("prisma.user.findUnique (with roles + permissions)");
 
-    const {token, tokenId} = await createEmailToken(newUser.id);
-    const verificationlink = `http://localhost:3000/api/auth/verify-email?token=${token}&tokenId=${tokenId}`;
-    const html = verificationEmailTemplate(verificationlink);
+    console.time("createEmailToken");
+    const { token, tokenId } = await createEmailToken(newUser.id);
+    console.timeEnd("createEmailToken");
 
-    await sendEmail({
+    console.time("sendEmail (async fire-and-forget)");
+    sendEmail({
       to: email,
       subject: "Verify your email",
-      html: html,
+      html: verificationEmailTemplate(
+        `http://localhost:3000/api/auth/verify-email?token=${token}&tokenId=${tokenId}`
+      ),
     });
+    console.timeEnd("sendEmail (async fire-and-forget)");
 
-    console.log("User created", userWithRoles);
-    return { userWithRoles, verificationlink };
+    console.timeEnd("Total registerUser");
+
+    return { userWithRoles };
   } catch (err) {
-    console.log("Registration failed:", err);
+    console.error("Registration failed:", err);
+    throw err;
   }
 }
 
