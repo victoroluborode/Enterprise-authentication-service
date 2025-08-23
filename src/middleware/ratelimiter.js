@@ -3,7 +3,7 @@ const { rateLimit } = require("express-rate-limit");
 const RedisStore = require("rate-limit-redis").default;
 const redisClient = require("../config/redisClient");
 
-// Helper function to safely extract IP address
+
 const getClientIP = (req) => {
   const forwarded = req.headers["x-forwarded-for"];
   const realIP = req.headers["x-real-ip"];
@@ -35,8 +35,8 @@ const createLimiter = (options) => {
     headers: true,
     store: new RedisStore({
       client: redisClient,
-      prefix: `${prefix}:`, // Add colon for better key separation
-      sendCommand: (...args) => redisClient.call(...args), // Ensure proper Redis command execution
+      prefix: `${prefix}:`,
+      sendCommand: (...args) => redisClient.call(...args),
     }),
     keyGenerator: (req) => {
       const key = keyGen ? keyGen(req) : getClientIP(req);
@@ -46,13 +46,13 @@ const createLimiter = (options) => {
     },
     skipFailedRequests: true,
     skipSuccessfulRequests: false,
-    // CRITICAL FIX: Disable validation that causes double counting
+   
     validate: {
       trustProxy: false,
       xForwardedForLimit: 1,
-      singleCount: false, // This prevents ERR_ERL_DOUBLE_COUNT
+      singleCount: false,
     },
-    // Add standardHeaders for better client handling
+   
     standardHeaders: true,
     legacyHeaders: false,
     handler: (req, res, next, options) => {
@@ -163,7 +163,7 @@ const changePasswordLimiter = createLimiter({
     "Too many password change attempts. Please try again after 30 minutes.",
   type: "User-based",
   prefix: "change_password",
-  keyGen: (req) => (req.user?.id ? `user_${req.user.id}` : getClientIP(req)), // Fixed: use req.user.id instead of req.user.sub
+  keyGen: (req) => (req.user?.id ? `user_${req.user.id}` : getClientIP(req)), 
 });
 
 const forgotPasswordLimiter = createLimiter({

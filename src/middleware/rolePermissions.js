@@ -4,10 +4,14 @@ const hasRole = (allowedRoles) => {
   return async (req, res, next) => {
     try {
       const userId = req.user.id;
+      const customKey = prisma.getKey({
+              params: [{ prisma: "user" }, { id: userId }],
+            });
       const userWithRoles = await prisma.user.findUnique({
         where: {
           id: userId,
         },
+        cache: {ttl: 60, key: customKey},
         include: { roles: { select: { role: { select: { name: true } } } } },
       });
 
@@ -79,8 +83,12 @@ const hasPermissions = (requiredPermissions) => {
 
           if (resourceId) {
             try {
+              const customKey = prisma.getKey({
+                params: [{ prisma: "user" }, { resourceId: resourceId }],
+              });
               const resourceObject = await prisma[resource].findUnique({
                 where: { id: resourceId },
+                cache: {ttl: 60, key: customKey},
                 select: { userId: true },
               });
 

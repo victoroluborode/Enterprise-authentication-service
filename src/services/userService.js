@@ -25,8 +25,13 @@ async function registerUser(email, password, fullname) {
     console.timeEnd("prisma.user.create");
 
     console.time("prisma.role.findUnique");
+    const customKey = prisma.getKey({
+            params: [{ prisma: "user" }, { email: email }],
+    });
+    
     const defaultRole = await prisma.role.findUnique({
       where: { name: "USER" },
+      cache: {ttl: 60, key: customKey}
     });
     console.timeEnd("prisma.role.findUnique");
 
@@ -43,9 +48,11 @@ async function registerUser(email, password, fullname) {
     });
     console.timeEnd("prisma.userRole.create");
 
+    
     console.time("prisma.user.findUnique (with roles + permissions)");
     const userWithRoles = await prisma.user.findUnique({
       where: { id: newUser.id },
+      cache: {ttl: 60, key: customKey},
       include: {
         roles: {
           include: {

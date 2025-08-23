@@ -51,8 +51,13 @@ const verifyEmailToken = async (req, res, next) => {
       });
     }
 
+    const customKey = prisma.getKey({
+      params: [{ prisma: "user" }, { id: emailToken.userId }],
+    });
+
     const user = await prisma.user.findUnique({
       where: { id: emailToken.userId },
+      cache: {ttl: 60, key: customKey}
     });
 
     if (user.emailVerified) {
@@ -88,9 +93,13 @@ const verifyEmailToken = async (req, res, next) => {
 const requireEmailVerification = async (req, res, next) => {
   const userId = req.user.id;
 
+  const customKey = prisma.getKey({
+    params: [{ prisma: "user" }, { id: userId }],
+  });
   try {
     const user = await prisma.user.findUnique({
       where: { id: userId },
+      cache: {ttl: 60, key: customKey}
     });
 
     if (!user) {

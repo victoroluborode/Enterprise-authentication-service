@@ -17,9 +17,13 @@ const authenticateToken = async (req, res, next) => {
             });
         }
       
-        const tokenVer = decoded.tokenVersion;
+      const tokenVer = decoded.tokenVersion;
+      const customKey = prisma.getKey({
+        params: [{ prisma: "user" }, { id: decoded.sub }],
+      });
       const user = await prisma.user.findUnique({
         where: { id: decoded.sub },
+        cache: {ttl: 10, key: customKey},
         include: {
           roles: {
             include: {
