@@ -71,7 +71,7 @@ router.post(
       });
       const existingUser = await prisma.user.findUnique({
         where: { email },
-        cache: {ttl: 60, key: customKey},
+        cache: { ttl: 60, key: customKey },
       });
       timer.log("findUnique");
 
@@ -159,7 +159,7 @@ router.post(
 
       const user = await prisma.user.findUnique({
         where: { email },
-        cache: {ttl: 60, key: customKey}
+        cache: { ttl: 60, key: customKey },
       });
       timer.log("findUnique");
 
@@ -225,29 +225,28 @@ router.post(
         params: [{ prisma: "user" }, { email: email }],
       });
 
-      const user = await prisma.user
-        .findUnique({
-          where: { email },
-          cache: { ttl: 30, key: customKey },
-          select: {
-            id: true,
-            email: true,
-            fullname: true,
-            password: true,
-            roles: {
-              select: {
-                role: {
-                  select: {
-                    name: true,
-                    permissions: {
-                      select: { permission: { select: { name: true } } },
-                    },
+      const user = await prisma.user.findUnique({
+        where: { email },
+        cache: { ttl: 30, key: customKey },
+        select: {
+          id: true,
+          email: true,
+          fullname: true,
+          password: true,
+          roles: {
+            select: {
+              role: {
+                select: {
+                  name: true,
+                  permissions: {
+                    select: { permission: { select: { name: true } } },
                   },
                 },
               },
             },
           },
-        });
+        },
+      });
       timer.log("findUnique");
 
       if (!user) {
@@ -315,11 +314,11 @@ router.post(
 
     try {
       const customKey = prisma.getKey({
-        params: [{ prisma: "user" }, { id: id }],
+        params: [{ prisma: "user" }, { id: userId }],
       });
       const userWithRoles = await prisma.user.findUnique({
         where: { id: userId },
-        cache: {ttl: 60, key: customKey},
+        cache: { ttl: 60, key: customKey },
         include: {
           roles: {
             include: {
@@ -469,12 +468,8 @@ router.post(
       const { currentpassword, newpassword } = req.body;
       const userId = req.user.id;
 
-      const customKey = prisma.getKey({
-        params: [{ prisma: "user" }, { id: userId }],
-      });
       const user = await prisma.user.findUnique({
         where: { id: userId },
-        cache: {ttl: 60, key: customKey}
       });
       timer.log("findUnique");
       const doesPasswordMatch = await bcrypt.compare(
@@ -514,12 +509,8 @@ router.post(
     const timer = startTimer("TOTAL forgot-password");
     const { email } = req.body;
     try {
-      const customKey = prisma.getKey({
-        params: [{ prisma: "user" }, { email: email }],
-      });
       const user = await prisma.user.findUnique({
         where: { email },
-        cache: {ttl: 60, key: customKey}
       });
       timer.log("findUnique");
       if (!user)
@@ -582,12 +573,8 @@ router.post(
       });
       timer.log("deleteMany expired");
 
-      const customKey = prisma.getKey({
-        params: [{ prisma: "user" }, { tokenId: tokenId }],
-      });
       const passwordToken = await prisma.passwordResetToken.findUnique({
         where: { tokenId },
-        cache: {ttl: 60, key: customKey}
       });
       timer.log("findUnique");
       if (!passwordToken || passwordToken.expiresAt < new Date())
@@ -637,10 +624,9 @@ router.get(
   async (req, res, next) => {
     const timer = startTimer("TOTAL get-posts");
     try {
-      
       const posts = await prisma.post.findMany({
         include: { user: { select: { fullname: true, email: true } } },
-        cache: true
+        cache: true,
       });
       timer.log("findMany");
       res.status(200).json({ message: "Access Granted", posts });
@@ -696,14 +682,9 @@ router.put(
   async (req, res, next) => {
     const timer = startTimer("TOTAL update-post");
     const { postId } = req.params;
-    const { title, content } = req.body;
 
-    const customKey = prisma.getKey({
-      params: [{ prisma: "user" }, { postId: postId }],
-    });
     const existingPost = await prisma.post.findUnique({
       where: { id: parseInt(postId) },
-      cache: {ttl: 60, key: customKey}
     });
     timer.log("findUnique");
     if (!existingPost) return next(new AppError("Post not found.", 404));
@@ -739,12 +720,9 @@ router.delete(
   async (req, res, next) => {
     const timer = startTimer("TOTAL delete-post");
     const { postId } = req.params;
-    const customKey = prisma.getKey({
-      params: [{ prisma: "user" }, { postId: postId }],
-    });
+
     const existingPost = await prisma.post.findUnique({
       where: { id: parseInt(postId) },
-      cache: {ttl: 60, key: customKey}
     });
     timer.log("findUnique");
     if (!existingPost) return next(new AppError("Post not found.", 404));

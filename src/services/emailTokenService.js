@@ -39,11 +39,13 @@ const verifyEmailToken = async (req, res, next) => {
     });
 
     if (!emailToken || emailToken.expiresAt < new Date()) {
+      console.log("LOG: Token not found or expired. Returning early.");
       return res.status(401).json({
         message: "Invalid or expired token",
       });
     }
 
+     console.log("LOG: Token found. Proceeding with verification.");
     const isTokenValid = await bcrypt.compare(token, emailToken.token);
     if (!isTokenValid) {
       return res.status(401).json({
@@ -51,13 +53,10 @@ const verifyEmailToken = async (req, res, next) => {
       });
     }
 
-    const customKey = prisma.getKey({
-      params: [{ prisma: "user" }, { id: emailToken.userId }],
-    });
+    
 
     const user = await prisma.user.findUnique({
-      where: { id: emailToken.userId },
-      cache: {ttl: 60, key: customKey}
+      where: { id: emailToken.userId }
     });
 
     if (user.emailVerified) {
@@ -73,16 +72,23 @@ const verifyEmailToken = async (req, res, next) => {
       },
     });
 
+    console.log("LOG: Deleting token with ID:", emailToken.id);
     await prisma.emailVerificationToken.delete({
       where: {
         id: emailToken.id,
       },
     });
-
+    console.log("LOG: Token delete successful.");
+    
     res.status(200).json({
       message: "Email verified successful",
     });
   } catch (err) {
+    if (err.code === "P2025") {
+      console.error(
+        "LOG: P2025 error caught. Something went wrong between finding the token and deleting it."
+      );
+    }
     console.error(err);
     res.status(500).json({
       error: "Server error",
@@ -93,13 +99,10 @@ const verifyEmailToken = async (req, res, next) => {
 const requireEmailVerification = async (req, res, next) => {
   const userId = req.user.id;
 
-  const customKey = prisma.getKey({
-    params: [{ prisma: "user" }, { id: userId }],
-  });
+  
   try {
     const user = await prisma.user.findUnique({
-      where: { id: userId },
-      cache: {ttl: 60, key: customKey}
+      where: { id: userId }
     });
 
     if (!user) {

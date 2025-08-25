@@ -19,10 +19,10 @@ if (process.env.REDIS_HOST) {
 
     const cacheConfig = {
       ttl: 60, 
-      stale: 30, 
-      auto: {
-        ttl: 60,
-        stale: 30,
+      stale: 30,
+      models: {
+        user: { ttl: 60 },
+        post: {ttl: 60}
       },
       type: "STRING",
       cacheKey: {

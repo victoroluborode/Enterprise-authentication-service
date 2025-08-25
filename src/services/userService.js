@@ -9,6 +9,29 @@ async function registerUser(email, password, fullname) {
   try {
     console.time("Total registerUser");
 
+    // First, find the default role BEFORE creating the user
+    console.time("prisma.role.findFirst");
+    const roleKey = prisma.getKey({
+      params: [{ prisma: "role" }, { name: "USER" }],
+    });
+
+    console.log("All roles:", await prisma.role.findMany());
+    const defaultRole = await prisma.role.findFirst({
+      where: {
+        name: {
+          equals: "USER",
+          mode: "insensitive",
+        },
+      },
+      cache: { ttl: 60, key: roleKey },
+    });
+    console.log("Default role lookup result:", defaultRole);
+    console.timeEnd("prisma.role.findFirst");
+
+    if (!defaultRole) {
+      throw new Error("Default role not found. System misconfiguration.");
+    }
+
     console.time("bcrypt.hash");
     const saltRounds = 10;
     const userPassword = await bcrypt.hash(password, saltRounds);
@@ -24,23 +47,8 @@ async function registerUser(email, password, fullname) {
     });
     console.timeEnd("prisma.user.create");
 
-    console.time("prisma.role.findUnique");
-    const customKey = prisma.getKey({
-            params: [{ prisma: "user" }, { email: email }],
-    });
-    
-    const defaultRole = await prisma.role.findUnique({
-      where: { name: "USER" },
-      cache: {ttl: 60, key: customKey}
-    });
-    console.timeEnd("prisma.role.findUnique");
-
-    if (!defaultRole) {
-      throw new Error("Default role not found. System misconfiguration.");
-    }
-
     console.time("prisma.userRole.create");
-    await prisma.userRole.create({
+    const userRole = await prisma.userRole.create({
       data: {
         userId: newUser.id,
         roleId: defaultRole.id,
@@ -48,28 +56,21 @@ async function registerUser(email, password, fullname) {
     });
     console.timeEnd("prisma.userRole.create");
 
-    
-    console.time("prisma.user.findUnique (with roles + permissions)");
-    const userWithRoles = await prisma.user.findUnique({
-      where: { id: newUser.id },
-      cache: {ttl: 60, key: customKey},
-      include: {
-        roles: {
-          include: {
-            role: {
-              include: {
-                permissions: {
-                  include: {
-                    permission: { select: { name: true } },
-                  },
-                },
-              },
-            },
+    // Alternative: Build the response manually if the complex query fails
+    const userWithRoles = {
+      ...newUser,
+      roles: [
+        {
+          id: userRole.id,
+          userId: newUser.id,
+          roleId: defaultRole.id,
+          role: {
+            ...defaultRole,
+            permissions: [], // You can populate this later if needed
           },
         },
-      },
-    });
-    console.timeEnd("prisma.user.findUnique (with roles + permissions)");
+      ],
+    };
 
     console.time("createEmailToken");
     const { token, tokenId } = await createEmailToken(newUser.id);

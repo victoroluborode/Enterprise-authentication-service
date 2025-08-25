@@ -75,9 +75,7 @@ const verifyRefreshTokens = async (req, res, next) => {
 
     req.jtiOldToken = jti;
 
-    const customKey = prisma.getKey({
-      params: [{ prisma: "user" }, { id: userId }],
-    });
+    
     const storedJtiRecord = await prisma.refreshToken.findFirst({
       where: {
         userId,
@@ -85,8 +83,7 @@ const verifyRefreshTokens = async (req, res, next) => {
         expiresAt: {
           gte: new Date(),
         },
-      },
-      cache: {ttl: 60, key: customKey}
+      }
     });
 
     if (!storedJtiRecord) {
