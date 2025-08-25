@@ -221,13 +221,9 @@ router.post(
     const userAgent = req.headers["user-agent"];
 
     try {
-      const customKey = prisma.getKey({
-        params: [{ prisma: "user" }, { email: email }],
-      });
-
       const user = await prisma.user.findUnique({
         where: { email },
-        cache: { ttl: 30, key: customKey },
+        cache: false,
         select: {
           id: true,
           email: true,
