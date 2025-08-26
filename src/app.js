@@ -1,8 +1,4 @@
-// =====================================
-// OPTION 1: Direct Mounting (RECOMMENDED)
-// =====================================
 
-// app.js - Use this approach
 const express = require("express");
 const cookieParser = require("cookie-parser");
 const app = express();
