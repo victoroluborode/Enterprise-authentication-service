@@ -125,3 +125,5 @@
 {"duration":"13ms","ip":"::ffff:127.0.0.1","label":"src/utils/logger.js","level":"error","message":"Request completed","method":"POST","status":403,"timestamp":"2025-08-25 12:21:30","url":"/api/auth/token"}
 {"duration":"6ms","ip":"::ffff:127.0.0.1","label":"src/utils/logger.js","level":"error","message":"Request completed","method":"POST","status":403,"timestamp":"2025-08-25 12:24:01","url":"/api/auth/post"}
 {"duration":"12ms","ip":"::ffff:127.0.0.1","label":"src/utils/logger.js","level":"error","message":"Request completed","method":"GET","status":403,"timestamp":"2025-08-25 12:25:16","url":"/api/auth/posts"}
+{"duration":"32ms","ip":"::ffff:127.0.0.1","label":"src/utils/logger.js","level":"error","message":"Request completed","method":"PUT","status":403,"timestamp":"2025-08-25 12:31:16","url":"/api/auth/posts/1"}
+{"duration":"3ms","ip":"::ffff:127.0.0.1","label":"src/utils/logger.js","level":"error","message":"Request completed","method":"POST","status":403,"timestamp":"2025-08-25 12:32:17","url":"/api/auth/token"}
