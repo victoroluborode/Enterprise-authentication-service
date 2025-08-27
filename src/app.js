@@ -2,7 +2,9 @@
 const express = require("express");
 const cookieParser = require("cookie-parser");
 const app = express();
-require("dotenv").config();
+require("dotenv").config({
+  path: process.env.NODE_ENV === "production" ? ".env.production" : ".env",
+});
 const cors = require("cors");
 const helmet = require("helmet");
 

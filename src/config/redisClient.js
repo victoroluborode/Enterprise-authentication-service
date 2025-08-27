@@ -1,8 +1,15 @@
 const Redis = require("ioredis");
 require("dotenv").config();
 
-const redisClient = new Redis(process.env.REDIS_URL);
+if (!process.env.REDIS_URL) {
+  console.warn("No REDIS_URL found. Redis client will not connect.");
+}
 
+const redisClient = process.env.REDIS_URL
+  ? new Redis(process.env.REDIS_URL)
+  : null;
+
+if (redisClient) { 
 redisClient.on("connect", () =>
   console.log("Redis client: Attempting to connect...")
 );
@@ -16,6 +23,8 @@ redisClient.on("end", () => console.log("Redis client: Connection closed."));
 redisClient.on("reconnecting", () =>
   console.log("Redis client: Reconnecting...")
 );
+}
+
 
 
 process.on("SIGINT", async () => {

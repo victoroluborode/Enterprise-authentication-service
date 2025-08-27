@@ -1,23 +1,14 @@
 const { PrismaClient } = require("@prisma/client");
+const redisClient = require("../config/redisClient");
 const path = require("path");
-const dotenv = require('dotenv')
 
-
-dotenv.config({
-  path: process.env.NODE_ENV === "production" ? ".env.production" : ".env",
-});
-
-
-const prismaClient = new PrismaClient({
-  log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"]
-});
+const prismaClient = new PrismaClient();
 
 let prisma = prismaClient;
 
 
-if (process.env.REDIS_URL) {
+if (process.env.REDIS_URL && redisClient) {
   try {
-    const redisClient = require("../config/redisClient");
     const {
       PrismaExtensionRedis,
       CacheCase,
