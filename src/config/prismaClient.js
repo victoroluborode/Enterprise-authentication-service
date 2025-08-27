@@ -15,7 +15,7 @@ const prismaClient = new PrismaClient({
 let prisma = prismaClient;
 
 
-if (process.env.REDIS_HOST) {
+if (process.env.REDIS_URL) {
   try {
     const redisClient = require("../config/redisClient");
     const {
