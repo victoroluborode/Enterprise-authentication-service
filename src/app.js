@@ -34,6 +34,10 @@ app.use(cookieParser());
 app.use(requestLogger);
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
+app.get("/", (req, res) => {
+  res.send("API is running");
+});
+
 app.get("/api/auth/health", (req, res) => {
   res.status(200).json({
     status: "healthy",

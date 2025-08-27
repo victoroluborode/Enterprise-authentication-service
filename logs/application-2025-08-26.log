@@ -1,1 +1,3 @@
 {"duration":"10ms","ip":"::1","label":"src/utils/logger.js","level":"error","message":"Request completed","method":"GET","status":404,"timestamp":"2025-08-26 22:19:55","url":"/health"}
+{"duration":"7ms","ip":"::1","label":"src/utils/logger.js","level":"error","message":"Request completed","method":"GET","status":404,"timestamp":"2025-08-26 22:38:29","url":"/health"}
+{"duration":"4ms","ip":"::1","label":"src/utils/logger.js","level":"info","message":"Request completed","method":"GET","status":200,"timestamp":"2025-08-26 22:39:54","url":"/api/auth/health"}
