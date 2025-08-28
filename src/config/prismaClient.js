@@ -6,53 +6,62 @@ const prismaClient = new PrismaClient();
 
 let prisma = prismaClient;
 
+const initializePrismaWithRedis = async () => {
+  if (process.env.REDIS_URL && redisClient) {
+    try {
+      console.log("=== PRISMA REDIS EXTENSION DEBUG ===");
+      console.log("redisClient status:", redisClient.status);
+      console.log("redisClient options:", {
+        host: redisClient.options.host,
+        port: redisClient.options.port,
+      });
 
-if (process.env.REDIS_URL && redisClient) {
-  try {
-    console.log("=== PRISMA REDIS EXTENSION DEBUG ===");
-    console.log("redisClient status:", redisClient.status);
-    console.log("redisClient options:", {
-      host: redisClient.options.host,
-      port: redisClient.options.port,
-    });
+      // Wait for Redis to be ready if it's not already
+      if (redisClient.status !== "ready") {
+        console.log("Waiting for Redis client to be ready...");
+        await redisClient.ping(); // This will wait for connection
+        console.log("Redis client is now ready");
+      }
 
- if (redisClient.status !== "ready") {
-   console.log("Waiting for Redis client to be ready...");
-   await redisClient.ping(); 
- }
+      const {
+        PrismaExtensionRedis,
+        CacheCase,
+      } = require("prisma-extension-redis");
 
-    const {
-      PrismaExtensionRedis,
-      CacheCase,
-    } = require("prisma-extension-redis");
+      const cacheConfig = {
+        ttl: 60,
+        stale: 30,
+        models: {
+          user: { ttl: 60 },
+          post: { ttl: 60 },
+        },
+        type: "STRING",
+        cacheKey: {
+          case: CacheCase.SNAKE_CASE,
+          delimiter: ":",
+          prefix: "auth_service",
+        },
+      };
 
-    const cacheConfig = {
-      ttl: 60,
-      stale: 30,
-      models: {
-        user: { ttl: 60 },
-        post: { ttl: 60 },
-      },
-      type: "STRING",
-      cacheKey: {
-        case: CacheCase.SNAKE_CASE,
-        delimiter: ":",
-        prefix: "auth_service",
-      },
-    };
+      prisma = prisma.$extends(
+        PrismaExtensionRedis({
+          config: cacheConfig,
+          client: redisClient,
+        })
+      );
 
-    prisma = prisma.$extends(
-      PrismaExtensionRedis({
-        config: cacheConfig,
-        client: redisClient,
-      })
-    );
-
-    console.log("Prisma Redis extension loaded");
-  } catch (error) {
-    console.warn("Prisma Redis extension failed to load:", error.message);
+      console.log("Prisma Redis extension loaded successfully");
+    } catch (error) {
+      console.warn("Prisma Redis extension failed to load:", error.message);
+      console.warn("Continuing without Redis caching for Prisma");
+    }
+  } else {
+    console.log("Redis not available, using Prisma without caching");
   }
-}
+};
+
+// Initialize Redis extension asynchronously
+initializePrismaWithRedis().catch(console.error);
 
 // Connect Prisma
 prisma
