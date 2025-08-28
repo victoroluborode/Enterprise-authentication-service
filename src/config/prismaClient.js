@@ -19,7 +19,7 @@ const initializePrismaWithRedis = async () => {
       // Wait for Redis to be ready if it's not already
       if (redisClient.status !== "ready") {
         console.log("Waiting for Redis client to be ready...");
-        await redisClient.ping(); // This will wait for connection
+        await redisClient.ping();
         console.log("Redis client is now ready");
       }
 
@@ -43,14 +43,24 @@ const initializePrismaWithRedis = async () => {
         },
       };
 
+      // Try using Redis URL instead of client object
       prisma = prisma.$extends(
         PrismaExtensionRedis({
           config: cacheConfig,
-          client: redisClient,
+          redis: {
+            url: process.env.REDIS_URL,
+            // Add explicit configuration to prevent localhost fallback
+            connectTimeout: 10000,
+            commandTimeout: 5000,
+            retryDelayOnFailedAttempt: (attempt) => Math.min(attempt * 50, 500),
+            maxRetriesPerRequest: 3,
+          },
         })
       );
 
-      console.log("Prisma Redis extension loaded successfully");
+      console.log(
+        "Prisma Redis extension loaded successfully with URL configuration"
+      );
     } catch (error) {
       console.warn("Prisma Redis extension failed to load:", error.message);
       console.warn("Continuing without Redis caching for Prisma");
