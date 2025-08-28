@@ -3,7 +3,6 @@ const { rateLimit } = require("express-rate-limit");
 const RedisStore = require("rate-limit-redis").default;
 const redisClient = require("../config/redisClient");
 
-
 const getClientIP = (req) => {
   const forwarded = req.headers["x-forwarded-for"];
   const realIP = req.headers["x-real-ip"];
@@ -27,17 +26,13 @@ const createLimiter = (options) => {
     prefix = "ratelimit",
   } = options;
 
-  return rateLimit({
+  // Create base configuration
+  const config = {
     windowMs,
     max,
     message,
     statusCode: 429,
     headers: true,
-    store: new RedisStore({
-      client: redisClient,
-      prefix: `${prefix}:`,
-      sendCommand: (...args) => redisClient.call(...args),
-    }),
     keyGenerator: (req) => {
       const key = keyGen ? keyGen(req) : getClientIP(req);
       const finalKey = String(key);
@@ -46,13 +41,11 @@ const createLimiter = (options) => {
     },
     skipFailedRequests: true,
     skipSuccessfulRequests: false,
-   
     validate: {
       trustProxy: false,
       xForwardedForLimit: 1,
       singleCount: false,
     },
-   
     standardHeaders: true,
     legacyHeaders: false,
     handler: (req, res, next, options) => {
@@ -61,7 +54,30 @@ const createLimiter = (options) => {
       );
       res.status(options.statusCode).send(options.message);
     },
-  });
+  };
+
+  // Only add Redis store if redisClient is available and connected
+  if (redisClient && process.env.REDIS_URL) {
+    try {
+      config.store = new RedisStore({
+        client: redisClient,
+        prefix: `${prefix}:`,
+        sendCommand: (...args) => redisClient.call(...args),
+      });
+      console.log(`[RateLimiter] Using Redis store for ${prefix}`);
+    } catch (error) {
+      console.warn(
+        `[RateLimiter] Failed to create Redis store for ${prefix}, falling back to memory store:`,
+        error.message
+      );
+    }
+  } else {
+    console.warn(
+      `[RateLimiter] Redis not available, using memory store for ${prefix}`
+    );
+  }
+
+  return rateLimit(config);
 };
 
 // ----- Limiters -----
@@ -163,7 +179,7 @@ const changePasswordLimiter = createLimiter({
     "Too many password change attempts. Please try again after 30 minutes.",
   type: "User-based",
   prefix: "change_password",
-  keyGen: (req) => (req.user?.id ? `user_${req.user.id}` : getClientIP(req)), 
+  keyGen: (req) => (req.user?.id ? `user_${req.user.id}` : getClientIP(req)),
 });
 
 const forgotPasswordLimiter = createLimiter({
