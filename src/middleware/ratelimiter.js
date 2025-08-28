@@ -146,7 +146,7 @@ const setupLimiters = async () => {
   });
 
   return {
-    globaRateLimiter,
+    globalRateLimiter,
     loginRateLimiter,
     registerRateLimiter,
     tokenRateLimiter,
