@@ -10,8 +10,11 @@ const logger = require("../utils/logger");
 // Helper function to create the Express middleware wrapper
 const rateLimiterMiddleware = (rateLimiter) => {
   return (req, res, next) => {
+    // Use the X-Device-Id header as the unique key, with a fallback to IP
+    const key = req.header("X-Device-Id") || req.ip;
+
     rateLimiter
-      .consume(req.ip)
+      .consume(key)
       .then(() => {
         next();
       })
@@ -29,7 +32,7 @@ const setupLimiters = async () => {
   try {
     redisClient = redis.createClient({ url: process.env.REDIS_URL });
 
-    // This is the key change: we await the connection before proceeding.
+    // Await the connection before proceeding.
     await redisClient.connect();
     logger.info("Redis client connected successfully and is ready!");
     store = "redis";
