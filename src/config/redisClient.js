@@ -7,9 +7,7 @@ if (!process.env.REDIS_URL) {
 
 console.log("REDIS_URL from process.env:", process.env.REDIS_URL);
 
-const redisClient = process.env.REDIS_URL
-  ? new Redis(process.env.REDIS_URL)
-  : null;
+const redisClient = new Redis(process.env.REDIS_URL);
 
 if (redisClient) { 
 redisClient.on("connect", () =>

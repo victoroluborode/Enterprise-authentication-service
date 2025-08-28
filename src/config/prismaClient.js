@@ -48,8 +48,10 @@ const initializePrismaWithRedis = async () => {
         PrismaExtensionRedis({
           config: cacheConfig,
           redis: {
-            url: process.env.REDIS_URL,
-            // Add explicit configuration to prevent localhost fallback
+            host: redisClient.options.host,
+            port: redisClient.options.port,
+            password: process.env.REDIS_URL.split('//')[1].split('@')[0].split(':')[1],
+            username: "default",
             connectTimeout: 10000,
             commandTimeout: 5000,
             retryDelayOnFailedAttempt: (attempt) => Math.min(attempt * 50, 500),
