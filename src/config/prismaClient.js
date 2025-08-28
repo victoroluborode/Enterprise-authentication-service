@@ -9,6 +9,18 @@ let prisma = prismaClient;
 
 if (process.env.REDIS_URL && redisClient) {
   try {
+    console.log("=== PRISMA REDIS EXTENSION DEBUG ===");
+    console.log("redisClient status:", redisClient.status);
+    console.log("redisClient options:", {
+      host: redisClient.options.host,
+      port: redisClient.options.port,
+    });
+
+ if (redisClient.status !== "ready") {
+   console.log("Waiting for Redis client to be ready...");
+   await redisClient.ping(); 
+ }
+
     const {
       PrismaExtensionRedis,
       CacheCase,
