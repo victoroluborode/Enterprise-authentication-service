@@ -43,7 +43,7 @@ const startServer = async () => {
   app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
   // Rate limiters should be applied before routes
-  app.use(globalRateLimiter);
+  app.use(globalRateLimiter);   //line 46
   app.use("/api/auth/login", loginRateLimiter);
   app.use("/api/auth/register", registerRateLimiter);
 

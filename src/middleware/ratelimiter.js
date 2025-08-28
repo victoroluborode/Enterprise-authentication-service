@@ -7,6 +7,20 @@ const redis = require("redis");
 const AppError = require("../utils/app-error");
 const logger = require("../utils/logger");
 
+// Helper function to create the Express middleware wrapper
+const rateLimiterMiddleware = (rateLimiter) => {
+  return (req, res, next) => {
+    rateLimiter
+      .consume(req.ip)
+      .then(() => {
+        next();
+      })
+      .catch((rejRes) => {
+        res.status(429).send("Too many requests.");
+      });
+  };
+};
+
 const setupLimiters = async () => {
   let redisClient;
   let store;
@@ -37,7 +51,8 @@ const setupLimiters = async () => {
     duration: 60, // 1 minute
   };
 
-  const globalRateLimiter = new (
+  // Create the instances of the rate limiters
+  const globalLimiterInstance = new (
     store === "redis" ? RateLimiterRedis : RateLimiterMemory
   )({
     ...commonOptions,
@@ -46,7 +61,7 @@ const setupLimiters = async () => {
     ...getStore(),
   });
 
-  const loginRateLimiter = new (
+  const loginLimiterInstance = new (
     store === "redis" ? RateLimiterRedis : RateLimiterMemory
   )({
     ...commonOptions,
@@ -55,7 +70,7 @@ const setupLimiters = async () => {
     ...getStore(),
   });
 
-  const registerRateLimiter = new (
+  const registerLimiterInstance = new (
     store === "redis" ? RateLimiterRedis : RateLimiterMemory
   )({
     ...commonOptions,
@@ -64,7 +79,7 @@ const setupLimiters = async () => {
     ...getStore(),
   });
 
-  const tokenRateLimiter = new (
+  const tokenLimiterInstance = new (
     store === "redis" ? RateLimiterRedis : RateLimiterMemory
   )({
     ...commonOptions,
@@ -73,7 +88,7 @@ const setupLimiters = async () => {
     ...getStore(),
   });
 
-  const postsRateLimiter = new (
+  const postsLimiterInstance = new (
     store === "redis" ? RateLimiterRedis : RateLimiterMemory
   )({
     ...commonOptions,
@@ -82,7 +97,7 @@ const setupLimiters = async () => {
     ...getStore(),
   });
 
-  const createPostRateLimiter = new (
+  const createPostLimiterInstance = new (
     store === "redis" ? RateLimiterRedis : RateLimiterMemory
   )({
     ...commonOptions,
@@ -91,7 +106,7 @@ const setupLimiters = async () => {
     ...getStore(),
   });
 
-  const sessionsRateLimiter = new (
+  const sessionsLimiterInstance = new (
     store === "redis" ? RateLimiterRedis : RateLimiterMemory
   )({
     ...commonOptions,
@@ -100,7 +115,7 @@ const setupLimiters = async () => {
     ...getStore(),
   });
 
-  const logoutAllRateLimiter = new (
+  const logoutAllLimiterInstance = new (
     store === "redis" ? RateLimiterRedis : RateLimiterMemory
   )({
     ...commonOptions,
@@ -109,7 +124,7 @@ const setupLimiters = async () => {
     ...getStore(),
   });
 
-  const logoutSpecificRateLimiter = new (
+  const logoutSpecificLimiterInstance = new (
     store === "redis" ? RateLimiterRedis : RateLimiterMemory
   )({
     ...commonOptions,
@@ -118,7 +133,7 @@ const setupLimiters = async () => {
     ...getStore(),
   });
 
-  const resendVerificationLimiter = new (
+  const resendVerificationLimiterInstance = new (
     store === "redis" ? RateLimiterRedis : RateLimiterMemory
   )({
     ...commonOptions,
@@ -127,7 +142,7 @@ const setupLimiters = async () => {
     ...getStore(),
   });
 
-  const changePasswordLimiter = new (
+  const changePasswordLimiterInstance = new (
     store === "redis" ? RateLimiterRedis : RateLimiterMemory
   )({
     ...commonOptions,
@@ -136,7 +151,7 @@ const setupLimiters = async () => {
     ...getStore(),
   });
 
-  const forgotPasswordLimiter = new (
+  const forgotPasswordLimiterInstance = new (
     store === "redis" ? RateLimiterRedis : RateLimiterMemory
   )({
     ...commonOptions,
@@ -146,18 +161,22 @@ const setupLimiters = async () => {
   });
 
   return {
-    globalRateLimiter,
-    loginRateLimiter,
-    registerRateLimiter,
-    tokenRateLimiter,
-    postsRateLimiter,
-    createPostRateLimiter,
-    sessionsRateLimiter,
-    logoutAllRateLimiter,
-    logoutSpecificRateLimiter,
-    resendVerificationLimiter,
-    changePasswordLimiter,
-    forgotPasswordLimiter,
+    globalRateLimiter: rateLimiterMiddleware(globalLimiterInstance),
+    loginRateLimiter: rateLimiterMiddleware(loginLimiterInstance),
+    registerRateLimiter: rateLimiterMiddleware(registerLimiterInstance),
+    tokenRateLimiter: rateLimiterMiddleware(tokenLimiterInstance),
+    postsRateLimiter: rateLimiterMiddleware(postsLimiterInstance),
+    createPostRateLimiter: rateLimiterMiddleware(createPostLimiterInstance),
+    sessionsRateLimiter: rateLimiterMiddleware(sessionsLimiterInstance),
+    logoutAllRateLimiter: rateLimiterMiddleware(logoutAllLimiterInstance),
+    logoutSpecificRateLimiter: rateLimiterMiddleware(
+      logoutSpecificLimiterInstance
+    ),
+    resendVerificationLimiter: rateLimiterMiddleware(
+      resendVerificationLimiterInstance
+    ),
+    changePasswordLimiter: rateLimiterMiddleware(changePasswordLimiterInstance),
+    forgotPasswordLimiter: rateLimiterMiddleware(forgotPasswordLimiterInstance),
     redisClient: store === "redis" ? redisClient : undefined,
   };
 };
