@@ -37,6 +37,15 @@ const setupLimiters = async () => {
     duration: 60, // 1 minute
   };
 
+  const globalRateLimiter = new (
+    store === "redis" ? RateLimiterRedis : RateLimiterMemory
+  )({
+    ...commonOptions,
+    points: 200, // 200 requests per minute
+    keyPrefix: "global",
+    ...getStore(),
+  });
+
   const loginRateLimiter = new (
     store === "redis" ? RateLimiterRedis : RateLimiterMemory
   )({
@@ -137,6 +146,7 @@ const setupLimiters = async () => {
   });
 
   return {
+    globaRateLimiter,
     loginRateLimiter,
     registerRateLimiter,
     tokenRateLimiter,
