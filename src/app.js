@@ -7,69 +7,48 @@ const cors = require("cors");
 const helmet = require("helmet");
 const path = require("path");
 
-// Import all required components
+// Middleware
 const requestLogger = require("../src/middleware/request-logger");
 const { globalErrorHandler } = require("./middleware/error-handler");
 const swaggerUi = require("swagger-ui-express");
 const YAML = require("yamljs");
 
-// Import all routes
+// Routes
 const AuthRoutes = require("./routes/auth");
 const TestEmailRoute = require("./routes/test-email");
 const AdminRoutes = require("./routes/admin");
 
 const swaggerDocument = YAML.load(path.resolve(__dirname, "../openapi.yaml"));
 
-// Export async setup function instead of app directly
 const setupApp = async () => {
   const app = express();
 
-  // Await the async function from the rate limiter module
+  // Import rate limiters
   const limiters = await require("./middleware/ratelimiter")();
   const { globalRateLimiter, loginRateLimiter, registerRateLimiter } = limiters;
 
-  // Middleware setup
+  // Core middleware
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
   app.use(helmet());
-
-  // Fixed CORS configuration
   app.use(
     cors({
       origin: [
-        "http://localhost:3000", // Local development
-        "http://localhost:3001", // Local frontend (if any)
-        "https://secureauth-qkhg.onrender.com", // Your deployed domain for Swagger UI
+        "http://localhost:3000",
+        "http://localhost:3001",
+        "https://secureauth-qkhg.onrender.com", // deployed domain
       ],
       credentials: true,
       methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
       allowedHeaders: ["Content-Type", "Authorization", "X-Device-Id"],
     })
   );
-
   app.use(cookieParser());
   app.use(requestLogger);
 
-  // Swagger UI configuration
-  app.use(
-    "/api-docs",
-    swaggerUi.serve,
-    swaggerUi.setup(swaggerDocument, {
-      swaggerOptions: {
-        docExpansion: "none", // Don't expand all endpoints by default
-        defaultModelsExpandDepth: -1, // Don't load models automatically
-        tryItOutEnabled: true, // Keep this enabled for testing
-        persistAuthorization: true, // Keep auth between page reloads
-        filter: true, // Enable search filter
-      },
-    })
-  );
-
-  // Apply specific rate limiters to auth routes BEFORE global rate limiter
-  app.use("/api/auth/login", loginRateLimiter);
-  app.use("/api/auth/register", registerRateLimiter);
-
-  // Health checks (these should be BEFORE global rate limiter)
+  /**
+   * Public routes (NOT rate limited)
+   */
   app.get("/", (req, res) => {
     res.send("API is running");
   });
@@ -82,23 +61,49 @@ const setupApp = async () => {
     });
   });
 
-  // Create a modified global rate limiter that skips API docs and health checks
-  const apiRateLimiter = (req, res, next) => {
-    // Skip rate limiting for API documentation and health checks
-    if (req.path.startsWith("/api-docs") || req.path.includes("/health")) {
+  // Swagger UI (no rate limit)
+  app.use(
+    "/api-docs",
+    swaggerUi.serve,
+    swaggerUi.setup(swaggerDocument, {
+      swaggerOptions: {
+        docExpansion: "none",
+        defaultModelsExpandDepth: -1,
+        tryItOutEnabled: true,
+        persistAuthorization: true,
+        filter: true,
+      },
+    })
+  );
+
+  /**
+   * Route-specific limiters
+   */
+  app.use("/api/auth/login", loginRateLimiter);
+  app.use("/api/auth/register", registerRateLimiter);
+
+  /**
+   * Global rate limiter — applies to everything under `/api`,
+   * except health checks and docs.
+   */
+  app.use("/api", (req, res, next) => {
+    if (
+      req.path.startsWith("/auth/health") || // whitelist health
+      req.originalUrl.startsWith("/api-docs") // whitelist docs
+    ) {
       return next();
     }
     return globalRateLimiter(req, res, next);
-  };
+  });
 
-  // Apply global rate limiter AFTER health checks and docs, but BEFORE API routes
-  app.use("/api", apiRateLimiter);
+  /**
+   * Protected routes (rate limited by default)
+   */
+  app.use("/api/auth", AuthRoutes);
+  app.use("/api/email", TestEmailRoute);
+  app.use("/api/admin", AdminRoutes);
 
-  // Route setup
-  app.use("/api/auth/", AuthRoutes);
-  app.use("/api/email/", TestEmailRoute);
-  app.use("/api/admin/", AdminRoutes);
-
+  // Global error handler
   app.use(globalErrorHandler);
 
   return app;
