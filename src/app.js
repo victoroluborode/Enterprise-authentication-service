@@ -34,7 +34,7 @@ const startServer = async () => {
   app.use(helmet());
   app.use(
     cors({
-      origin: "http://localhost:3001",
+      origin: "https://secureauth-qkhg.onrender.com",
       credentials: true,
     })
   );
