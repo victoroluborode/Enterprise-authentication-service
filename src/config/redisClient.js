@@ -5,10 +5,10 @@ if (!process.env.REDIS_URL) {
   console.warn("No REDIS_URL found. Redis client will not connect.");
 }
 
+console.log("REDIS_URL from process.env:", process.env.REDIS_URL);
+
 const redisClient = process.env.REDIS_URL
-  ? new Redis(
-      "rediss://default:AcpJAAIncDE5MDJhMzhlYjAyZGQ0ZmIyOWRjOWRjODZiNTU4ZWJhOXAxNTE3ODU@proud-silkworm-51785.upstash.io:6379"
-    )
+  ? new Redis(process.env.REDIS_URL)
   : null;
 
 if (redisClient) { 
