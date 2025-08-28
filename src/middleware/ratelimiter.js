@@ -56,15 +56,20 @@ const createLimiter = (options) => {
     },
   };
 
-  // Only add Redis store if redisClient is available and connected
-  if (redisClient && process.env.REDIS_URL) {
+  // Only add Redis store if redisClient is available and ready
+  if (redisClient && process.env.REDIS_URL && redisClient.status === "ready") {
     try {
       config.store = new RedisStore({
         client: redisClient,
         prefix: `${prefix}:`,
         sendCommand: (...args) => redisClient.call(...args),
+        // Prevent the package from creating its own Redis client
+        resetExpiryOnChange: false,
+        windowMs: windowMs,
       });
-      console.log(`[RateLimiter] Using Redis store for ${prefix}`);
+      console.log(
+        `[RateLimiter] Using Redis store for ${prefix} (client status: ${redisClient.status})`
+      );
     } catch (error) {
       console.warn(
         `[RateLimiter] Failed to create Redis store for ${prefix}, falling back to memory store:`,
@@ -72,8 +77,13 @@ const createLimiter = (options) => {
       );
     }
   } else {
+    const reason = !redisClient
+      ? "no client"
+      : !process.env.REDIS_URL
+      ? "no URL"
+      : `client status: ${redisClient.status}`;
     console.warn(
-      `[RateLimiter] Redis not available, using memory store for ${prefix}`
+      `[RateLimiter] Redis not ready (${reason}), using memory store for ${prefix}`
     );
   }
 

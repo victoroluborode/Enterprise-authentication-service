@@ -1,4 +1,4 @@
-
+// In app.js - revert to synchronous approach
 const express = require("express");
 const cookieParser = require("cookie-parser");
 const app = express();
@@ -7,11 +7,6 @@ require("dotenv").config({
 });
 const cors = require("cors");
 const helmet = require("helmet");
-
-// Import individual route files directly
-const AuthRoutes = require("./routes/auth");
-const TestEmailRoute = require("./routes/test-email");
-const AdminRoutes = require("./routes/admin");
 
 const redisClient = require("../src/config/redisClient");
 const { globalErrorHandler } = require("./middleware/error-handler");
@@ -48,10 +43,14 @@ app.get("/api/auth/health", (req, res) => {
   });
 });
 
-// Mount each route file directly - NO consolidated router needed
-app.use("/api/auth/", AuthRoutes); // Auth routes: /api/auth/login, /api/auth/register, etc.
-app.use("/api/email/", TestEmailRoute); // Email routes: /api/email/*
-app.use("/api/admin/", AdminRoutes); // Admin routes: /api/admin/*
+// Import routes immediately - let rate limiters handle Redis readiness
+const AuthRoutes = require("./routes/auth");
+const TestEmailRoute = require("./routes/test-email");
+const AdminRoutes = require("./routes/admin");
+
+app.use("/api/auth/", AuthRoutes);
+app.use("/api/email/", TestEmailRoute);
+app.use("/api/admin/", AdminRoutes);
 
 app.use(globalErrorHandler);
 module.exports = app;
