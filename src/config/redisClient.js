@@ -6,7 +6,7 @@ if (!process.env.REDIS_URL) {
 }
 
 const redisClient = process.env.REDIS_URL
-  ? new Redis(process.env.REDIS_URL)
+  ? new Redis(6379, "proud-silkworm-51785.upstash.io")
   : null;
 
 if (redisClient) { 
