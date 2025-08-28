@@ -45,6 +45,7 @@
     "prisma-extension-redis": "^2.1.1",
     "rate-limit-redis": "^4.2.2",
     "rate-limiter-flexible": "^7.2.0",
+    "redis": "^5.8.2",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1",
     "uuid": "^11.1.0",
