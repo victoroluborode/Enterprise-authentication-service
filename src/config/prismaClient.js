@@ -36,7 +36,7 @@ const initializePrisma = async () => {
       prisma = prisma.$extends(
         PrismaExtensionRedis({
           config: cacheConfig,
-          redis: readyClient, 
+          client: readyClient, 
         })
       );
 
