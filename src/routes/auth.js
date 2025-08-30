@@ -44,7 +44,6 @@ const { userInfo } = require("os");
     "/register",
     registerValidation,
     sanitizeFields(["email", "password", "fullname"]),
-    registerRateLimiter,
     async (req, res, next) => {
       const timer = startTimer("TOTAL register");
       const { email, password, fullname } = req.body;
