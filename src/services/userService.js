@@ -9,11 +9,8 @@ async function registerUser(email, password, fullname) {
   try {
     console.time("Total registerUser");
 
-    // First, find the default role BEFORE creating the user
+    
     console.time("prisma.role.findFirst");
-    const roleKey = prisma.getKey({
-      params: [{ prisma: "role" }, { name: "USER" }],
-    });
 
     console.log("All roles:", await prisma.role.findMany());
     const defaultRole = await prisma.role.findFirst({
@@ -22,8 +19,7 @@ async function registerUser(email, password, fullname) {
           equals: "USER",
           mode: "insensitive",
         },
-      },
-      cache: { ttl: 60, key: roleKey },
+      }
     });
     console.log("Default role lookup result:", defaultRole);
     console.timeEnd("prisma.role.findFirst");
@@ -56,7 +52,7 @@ async function registerUser(email, password, fullname) {
     });
     console.timeEnd("prisma.userRole.create");
 
-    // Alternative: Build the response manually if the complex query fails
+    
     const userWithRoles = {
       ...newUser,
       roles: [
@@ -66,7 +62,7 @@ async function registerUser(email, password, fullname) {
           roleId: defaultRole.id,
           role: {
             ...defaultRole,
-            permissions: [], // You can populate this later if needed
+            permissions: [], 
           },
         },
       ],
