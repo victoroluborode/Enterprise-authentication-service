@@ -1,19 +1,13 @@
-const setupApp = require("./app.js");
+// server.js
+require("dotenv").config({
+  path: process.env.NODE_ENV === "production" ? ".env.production" : ".env",
+});
 
-const startServer = async () => {
-  try {
-    // Setup app with async middleware initialization
-    const app = await setupApp();
+const app = require("./app");
 
-    const PORT = process.env.PORT || 10000;
-
-    app.listen(PORT, "0.0.0.0", () => {
-      console.log(`Server running on port ${PORT}`);
-    });
-  } catch (error) {
-    console.error("Failed to start server:", error);
-    process.exit(1);
-  }
-};
-
-startServer();
+const PORT = process.env.PORT || 10000;
+app.listen(PORT, () => {
+  console.log(
+    `🚀 Server running on port ${PORT} in ${process.env.NODE_ENV} mode`
+  );
+});
