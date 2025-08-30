@@ -6,11 +6,11 @@ const pino = require("pino");
 
 const logger = pino();
 
-// Global Prisma client instance
+
 const prismaClient = new PrismaClient();
 let prisma = prismaClient;
 
-// Asynchronous function to initialize Prisma
+
 const initializePrisma = async () => {
   const readyClient = await redisReadyPromise;
 
@@ -36,7 +36,7 @@ const initializePrisma = async () => {
       prisma = prisma.$extends(
         PrismaExtensionRedis({
           config: cacheConfig,
-          redis: readyClient, // Pass the already-ready client instance
+          redis: readyClient, 
         })
       );
 
@@ -50,7 +50,7 @@ const initializePrisma = async () => {
   }
 };
 
-// Initialize Prisma and then connect to the database
+
 (async () => {
   await initializePrisma();
 

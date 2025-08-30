@@ -40,23 +40,6 @@ const AppError = require("../utils/app-error");
 const logger = require("../utils/logger");
 const { userInfo } = require("os");
 
-// Use an async function to get the limiters
-const setupRoutes = async (limiters) => {
-  const {
-    loginRateLimiter,
-    tokenRateLimiter,
-    registerRateLimiter,
-    postsRateLimiter,
-    createPostRateLimiter,
-    sessionsRateLimiter,
-    logoutAllRateLimiter,
-    logoutSpecificRateLimiter,
-    resendVerificationLimiter,
-    changePasswordLimiter,
-    forgotPasswordLimiter,
-  } = limiters;
-
-  // ------------------------- REGISTER -------------------------
   router.post(
     "/register",
     registerValidation,
@@ -152,7 +135,6 @@ const setupRoutes = async (limiters) => {
 
   router.post(
     "/resend-verification-email",
-    resendVerificationLimiter,
     async (req, res, next) => {
       const timer = startTimer("TOTAL resend-verification-email");
       const email = req.body.email;
@@ -219,7 +201,6 @@ const setupRoutes = async (limiters) => {
     "/login",
     loginValidation,
     sanitizeFields(["email", "password", "deviceId"]),
-    loginRateLimiter,
     async (req, res, next) => {
       const timer = startTimer("TOTAL login");
       const { email, password } = req.body;
@@ -313,7 +294,6 @@ const setupRoutes = async (limiters) => {
   router.post(
     "/token",
     verifyRefreshTokens,
-    tokenRateLimiter,
     async (req, res, next) => {
       const timer = startTimer("TOTAL token-refresh");
       const { jtiOldToken } = req;
@@ -381,7 +361,6 @@ const setupRoutes = async (limiters) => {
   router.delete(
     "/logout",
     authenticateToken,
-    logoutSpecificRateLimiter,
     async (req, res, next) => {
       const timer = startTimer("TOTAL logout");
       const { id: userId, jti } = req.user;
@@ -409,7 +388,6 @@ const setupRoutes = async (limiters) => {
   router.delete(
     "/sessions",
     authenticateToken,
-    logoutAllRateLimiter,
     async (req, res, next) => {
       const timer = startTimer("TOTAL logout-all");
       const userId = req.user.id;
@@ -437,7 +415,6 @@ const setupRoutes = async (limiters) => {
   router.delete(
     "/sessions/:jti",
     authenticateToken,
-    logoutSpecificRateLimiter,
     async (req, res, next) => {
       const timer = startTimer("TOTAL logout-specific-session");
       const { jti } = req.params;
@@ -473,7 +450,6 @@ const setupRoutes = async (limiters) => {
   router.post(
     "/change-password",
     authenticateToken,
-    changePasswordLimiter,
     changePasswordValidation,
     async (req, res, next) => {
       const timer = startTimer("TOTAL change-password");
@@ -516,7 +492,6 @@ const setupRoutes = async (limiters) => {
   // ------------------------- FORGOT PASSWORD -------------------------
   router.post(
     "/forgot-password",
-    forgotPasswordLimiter,
     forgotPasswordValidation,
     async (req, res, next) => {
       const timer = startTimer("TOTAL forgot-password");
@@ -633,7 +608,6 @@ const setupRoutes = async (limiters) => {
     "/posts",
     authenticateToken,
     hasPermissions(["post:read"]),
-    postsRateLimiter,
     async (req, res, next) => {
       const timer = startTimer("TOTAL get-posts");
       try {
@@ -662,7 +636,6 @@ const setupRoutes = async (limiters) => {
     authenticateToken,
     hasPermissions(["post:create"]),
     requireEmailVerification,
-    createPostRateLimiter,
     postValidation,
     sanitizeFields(["title", "content"]),
     async (req, res, next) => {
@@ -761,7 +734,6 @@ const setupRoutes = async (limiters) => {
     }
   );
 
-  return router;
-};
 
-module.exports = setupRoutes;
+
+module.exports = router;
