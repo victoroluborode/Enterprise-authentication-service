@@ -2,7 +2,7 @@
 const { PrismaClient } = require("@prisma/client");
 const logger = require("../utils/logger");
 
-const prismaClient = new PrismaClient();
+const prisma = new PrismaClient();
 
 (async () => {
   try {
