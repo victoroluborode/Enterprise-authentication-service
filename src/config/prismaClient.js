@@ -6,16 +6,13 @@ const pino = require("pino");
 
 const logger = pino();
 
+async function createPrisma() {
+  const prismaClient = new PrismaClient();
 
-const prismaClient = new PrismaClient();
-let prisma = prismaClient;
+  try {
+    const readyClient = await redisReadyPromise;
 
-
-const initializePrisma = async () => {
-  const readyClient = await redisReadyPromise;
-
-  if (readyClient) {
-    try {
+    if (readyClient) {
       logger.info("Initializing Prisma with Redis extension.");
 
       const cacheConfig = {
@@ -33,33 +30,23 @@ const initializePrisma = async () => {
         },
       };
 
-      prisma = prisma.$extends(
+      return prismaClient.$extends(
         PrismaExtensionRedis({
           config: cacheConfig,
-          client: readyClient, 
+          client: readyClient,
         })
       );
-
-      logger.info("Prisma Redis extension loaded successfully.");
-    } catch (error) {
-      logger.warn("Prisma Redis extension failed to load:", error.message);
-      logger.warn("Continuing without Redis caching for Prisma.");
     }
-  } else {
-    logger.warn("Redis not available, using Prisma without caching.");
+
+    logger.warn("Redis not available, using plain Prisma client.");
+    return prismaClient;
+  } catch (error) {
+    logger.error("Error initializing Prisma with Redis:", error);
+    return prismaClient;
   }
-};
+}
 
-
-(async () => {
-  await initializePrisma();
-
-  try {
-    await prisma.$connect();
-    logger.info("Prisma client connected successfully to the database.");
-  } catch (err) {
-    logger.fatal("Prisma client connection failed:", err);
-  }
-})();
+// Export a promise of the ready Prisma client
+const prisma = createPrisma();
 
 module.exports = prisma;

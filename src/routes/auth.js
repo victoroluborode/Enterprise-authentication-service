@@ -16,7 +16,7 @@ const {
 const { startTimer } = require("../utils/timer");
 const { sanitizeFields } = require("../utils/sanitization");
 const { authenticateToken } = require("../middleware/auth");
-const prisma = require("../config/prismaClient");
+const prismaPromise = require("../config/prismaClient");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const {
@@ -52,6 +52,7 @@ const { userInfo } = require("os");
       const userAgent = req.headers["user-agent"];
 
       try {
+        const prisma = await prismaPromise;
         const customKey = prisma.getKey({
           params: [{ prisma: "user" }, { email: email }],
         });
