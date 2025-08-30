@@ -6,7 +6,6 @@ const requestLogger = (req, res, next) => {
   res.on("finish", () => {
     const duration = Date.now() - start;
 
-    // smarter log level selection
     let level = "info";
     if (res.statusCode >= 500) {
       level = "error";

@@ -12,9 +12,7 @@ router.get(
   hasPermissions("roles:list"),
   async (req, res, next) => {
     try {
-      const roles = await prisma.role.findMany({
-        cache: true
-      });
+      const roles = await prisma.role.findMany();
       res.status(200).json(roles);
     } catch (err) {
       console.error(err);
@@ -29,9 +27,7 @@ router.get(
   hasPermissions("permissions:list"),
   async (req, res, next) => {
     try {
-      const permissions = await prisma.permission.findMany({
-        cache: true
-      });
+      const permissions = await prisma.permission.findMany();
       res.status(200).json(permissions);
     } catch (err) {
       console.error(err);

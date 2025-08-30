@@ -16,7 +16,7 @@ const {
 const { startTimer } = require("../utils/timer");
 const { sanitizeFields } = require("../utils/sanitization");
 const { authenticateToken } = require("../middleware/auth");
-const prismaPromise = require("../config/prismaClient");
+const prisma = require("../config/prismaClient");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const {
@@ -52,13 +52,8 @@ const { userInfo } = require("os");
       const userAgent = req.headers["user-agent"];
 
       try {
-        const prisma = await prismaPromise;
-        const customKey = prisma.getKey({
-          params: [{ prisma: "user" }, { email: email }],
-        });
         const existingUser = await prisma.user.findUnique({
-          where: { email },
-          cache: { ttl: 60, key: customKey },
+          where: { email }
         });
         timer.log("findUnique");
 
@@ -139,13 +134,8 @@ const { userInfo } = require("os");
       const timer = startTimer("TOTAL resend-verification-email");
       const email = req.body.email;
       try {
-        const customKey = prisma.getKey({
-          params: [{ prisma: "user" }, { email: email }],
-        });
-
         const user = await prisma.user.findUnique({
-          where: { email },
-          cache: { ttl: 60, key: customKey },
+          where: { email }
         });
         timer.log("findUnique");
 
@@ -302,12 +292,8 @@ const { userInfo } = require("os");
       const userAgent = req.headers["user-agent"];
 
       try {
-        const customKey = prisma.getKey({
-          params: [{ prisma: "user" }, { id: userId }],
-        });
         const userWithRoles = await prisma.user.findUnique({
           where: { id: userId },
-          cache: { ttl: 60, key: customKey },
           include: {
             roles: {
               include: {
