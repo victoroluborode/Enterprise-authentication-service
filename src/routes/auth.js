@@ -201,7 +201,6 @@ const { userInfo } = require("os");
       try {
         const user = await prisma.user.findUnique({
           where: { email },
-          cache: false,
           select: {
             id: true,
             email: true,
