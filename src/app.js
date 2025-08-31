@@ -1,5 +1,6 @@
 // app.js
 const express = require("express");
+const app = express();
 const cors = require("cors");
 const helmet = require("helmet");
 const cookieParser = require("cookie-parser");
@@ -16,7 +17,7 @@ const AuthRoutes = require("./routes/auth");
 const TestEmailRoute = require("./routes/test-email");
 const AdminRoutes = require("./routes/admin");
 
-const app = express();
+
 
 // Core middleware
 app.use(express.json());
