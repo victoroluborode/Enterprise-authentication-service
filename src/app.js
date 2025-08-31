@@ -8,6 +8,9 @@ const YAML = require("yamljs");
 const path = require("path");
 const swaggerDocument = YAML.load(path.resolve(__dirname, "../openapi.yaml"));
 
+
+app.use(express.static("public"));
+
 // Routes
 const AuthRoutes = require("./routes/auth");
 const TestEmailRoute = require("./routes/test-email");

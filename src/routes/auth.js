@@ -510,7 +510,7 @@ const { userInfo } = require("os");
         });
         timer.log("create");
 
-        const resetPasswordLink = `http://localhost:${process.env.PORT}/api/auth/reset-password?tokenId=${tokenId}&token=${rawtoken}`;
+        const resetPasswordLink = `${process.env.WEBSITE_URL}/reset-password.html?tokenId=${tokenId}&token=${rawtoken}`;
         const html = resetPasswordEmailTemplate(resetPasswordLink);
 
         await sendEmail({ to: email, subject: "Reset your password", html });
