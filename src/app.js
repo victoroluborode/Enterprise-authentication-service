@@ -10,7 +10,7 @@ const path = require("path");
 const swaggerDocument = YAML.load(path.resolve(__dirname, "../openapi.yaml"));
 
 
-app.use(express.static(path.join(__dirname, "public")));
+app.use(express.static(path.join(__dirname, "../public")));
 
 // Routes
 const AuthRoutes = require("./routes/auth");
