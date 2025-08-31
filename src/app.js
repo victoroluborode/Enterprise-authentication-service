@@ -3,6 +3,9 @@ const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
 const cookieParser = require("cookie-parser");
+const swaggerUi = require("swagger-ui-express");
+const YAML = require("yamljs");
+const swaggerDocument = YAML.load(path.resolve(__dirname, "../openapi.yaml"));
 
 // Routes
 const AuthRoutes = require("./routes/auth");
@@ -30,6 +33,8 @@ app.get("/api/auth/health", (req, res) => {
     message: "Server is up and running",
   });
 });
+
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 // Attach routes
 app.use("/api/auth", AuthRoutes);
