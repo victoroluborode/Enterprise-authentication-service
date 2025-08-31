@@ -5,6 +5,7 @@ const helmet = require("helmet");
 const cookieParser = require("cookie-parser");
 const swaggerUi = require("swagger-ui-express");
 const YAML = require("yamljs");
+const path = require("path");
 const swaggerDocument = YAML.load(path.resolve(__dirname, "../openapi.yaml"));
 
 // Routes
