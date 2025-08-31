@@ -540,7 +540,7 @@ const { userInfo } = require("os");
       const timer = startTimer("TOTAL reset-password");
       try {
         const { tokenId, token } = req.query;
-        const { newpassword } = req.body;
+        const { newPassword } = req.body;
 
         await prisma.passwordResetToken.deleteMany({
           where: { expiresAt: { lt: new Date() } },
@@ -559,7 +559,7 @@ const { userInfo } = require("os");
         if (!isTokenValid) return next(new AppError("Invalid token", 401));
 
         const userId = passwordToken.userId;
-        const hashedNewPassword = await bcrypt.hash(newpassword, 10);
+        const hashedNewPassword = await bcrypt.hash(newPassword, 10);
         timer.log("bcrypt.hash");
 
         await prisma.user.update({
