@@ -4,7 +4,7 @@ info:
   description: This service handles user authentication and authorization for the enterprise application.
   version: 1.0.0
 servers:
-  - url: https://secureauth-qkhg.onrender.com/api/auth
+  - url: https://secureauth-qkhg.onrender.com/api-docs
     description: Production server
 
 paths:
