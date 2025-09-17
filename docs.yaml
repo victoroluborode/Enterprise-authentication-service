@@ -4,8 +4,8 @@ info:
   description: This service handles user authentication and authorization for the enterprise application.
   version: 1.0.0
 servers:
-  - url: http://localhost:3000/api/auth
-    description: Local development server
+  - url: https://secureauth-qkhg.onrender.com/api/auth
+    description: Production server
 paths:
   /login:
     post:
